@@ -10,7 +10,7 @@ export default function App() {
   const [activeSection, setActiveSection] = useState('home');
   const [isDarkMode, setIsDarkMode] = useState(true);
   const [showSplash, setShowSplash] = useState(true);
-  const [galleryImages, setGalleryImages] = useState<string[]>([]);
+  const [galleryImages, setGalleryImages] = useState<{src: string, title: string, desc: string, tag: string}[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
@@ -29,15 +29,33 @@ export default function App() {
       document.documentElement.classList.remove('dark');
     }
 
-    // Mock gallery load with high quality images
+    // Load specific gallery images
     setTimeout(() => {
       setGalleryImages([
-        'https://picsum.photos/seed/sanjay1/800/800',
-        'https://picsum.photos/seed/sanjay2/800/800',
-        'https://picsum.photos/seed/sanjay3/800/800',
-        'https://picsum.photos/seed/sanjay4/800/800',
-        'https://picsum.photos/seed/sanjay5/800/800',
-        'https://picsum.photos/seed/sanjay6/800/800'
+        {
+          src: 'https://sanjay.indiacybercafe.com/uploads/sanjay/sanjay%20kumar%20vaishya%20hero%20image.png',
+          title: 'Hero Image with Personal Strength',
+          desc: 'A polished personal branding portrait capturing Sanjay\'s confident and authentic presence. Ideal for personal branding, leadership, and digital service expertise.',
+          tag: 'Personal Brand'
+        },
+        {
+          src: 'https://sanjay.indiacybercafe.com/uploads/sanjay/Sanjay%20Kumar%20Vaishya%20%E2%80%93%20Leadership%2C%20Guidance%20and%20Community%20Support.jpg',
+          title: 'Leadership & Community Support',
+          desc: 'Sanjay Kumar Vaishya demonstrating leadership and providing guidance to the community through digital support services.',
+          tag: 'Leadership'
+        },
+        {
+          src: 'https://sanjay.indiacybercafe.com/uploads/sanjay/sanjay-vaishya-school-classroom-friends.jpg.jpg',
+          title: 'Connections & Growth',
+          desc: 'Building strong connections and fostering community growth through education and shared experiences in a classroom setting.',
+          tag: 'Community'
+        },
+        {
+          src: 'https://sanjay.indiacybercafe.com/uploads/sanjay/Sanjay%20Kumar%20Vaishya%20%E2%80%93%20Teamwork%2C%20Connections%20and%20Community%20Growth.jpg',
+          title: 'Teamwork & Digital Expertise',
+          desc: 'Collaborating with others to provide expert digital services and support, ensuring teamwork leads to community success.',
+          tag: 'Teamwork'
+        }
       ]);
     }, 1500);
 
@@ -260,24 +278,36 @@ export default function App() {
 
         {/* Gallery Section */}
         {activeSection === 'gallery' && (
-          <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="space-y-6">
+          <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="space-y-8">
             <h2 className="font-headline font-extrabold text-2xl">Gallery</h2>
-            <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-8">
               {galleryImages.length > 0 ? (
-                galleryImages.map((src, i) => (
+                galleryImages.map((item, i) => (
                   <motion.div 
                     key={i} 
-                    initial={{ opacity: 0, scale: 0.9 }} 
-                    animate={{ opacity: 1, scale: 1 }} 
+                    initial={{ opacity: 0, y: 20 }} 
+                    animate={{ opacity: 1, y: 0 }} 
                     transition={{ delay: i * 0.1 }}
-                    className="aspect-square rounded-[24px] overflow-hidden border border-gray-200 dark:border-white/10 group cursor-pointer shadow-sm transition-all duration-500"
+                    className="backdrop-blur-xl bg-white dark:bg-[#1a1a1a] border border-gray-200 dark:border-white/10 rounded-[32px] overflow-hidden shadow-sm dark:shadow-2xl transition-all duration-500"
                   >
-                    <img src={src} alt={`Gallery ${i}`} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" />
+                    <div className="bg-[#1a1a1a] dark:bg-black p-4">
+                      <p className="text-white text-xs font-bold leading-tight">Sanjay Kumar Vaishya – Professional Identity and Digital Service Expert</p>
+                    </div>
+                    <div className="aspect-[4/3] overflow-hidden">
+                      <img src={item.src} alt={item.title} className="w-full h-full object-cover" />
+                    </div>
+                    <div className="p-6 space-y-4">
+                      <h3 className="font-headline font-extrabold text-xl leading-tight">{item.title}</h3>
+                      <p className="text-sm text-gray-600 dark:text-gray-400 leading-relaxed">{item.desc}</p>
+                      <div className="inline-block px-4 py-2 bg-[#834fff]/10 rounded-full">
+                        <span className="text-[#834fff] text-xs font-bold">{item.tag}</span>
+                      </div>
+                    </div>
                   </motion.div>
                 ))
               ) : (
-                [...Array(6)].map((_, i) => (
-                  <div key={i} className="aspect-square rounded-[24px] bg-gray-100 dark:bg-white/10 animate-pulse transition-all duration-500"></div>
+                [...Array(2)].map((_, i) => (
+                  <div key={i} className="h-96 rounded-[32px] bg-gray-100 dark:bg-white/10 animate-pulse"></div>
                 ))
               )}
             </div>
@@ -294,26 +324,22 @@ export default function App() {
         {activeSection === 'updates' && (
           <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="space-y-6">
             <h2 className="font-headline font-extrabold text-2xl">Blog & Updates</h2>
-            <div className="space-y-6">
-              {[
-                { title: 'Modern Web Development Trends', category: 'TECH', date: 'MARCH 31, 2026', img: 'tech' },
-                { title: 'Cyber Cafe Services Expanded', category: 'CAFE', date: 'MARCH 25, 2026', img: 'cafe' }
-              ].map((post, i) => (
-                <div key={i} className="backdrop-blur-xl bg-white dark:bg-[#1a1a1a] border border-gray-200 dark:border-white/10 rounded-[24px] overflow-hidden group shadow-sm transition-all duration-500">
-                  <div className="h-48 relative">
-                    <img src={`https://picsum.photos/seed/${post.img}/600/400`} alt={post.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700" />
-                    <div className="absolute top-4 left-4 bg-[#834fff] text-white text-[10px] font-bold px-3 py-1 rounded-full uppercase tracking-widest">{post.category}</div>
-                  </div>
-                  <div className="p-6">
-                    <p className="text-[10px] font-bold text-gray-500 mb-2 tracking-widest">{post.date}</p>
-                    <h3 className="font-headline font-bold text-xl mb-3">{post.title}</h3>
-                    <p className="text-sm text-gray-600 dark:text-gray-400 mb-6 line-clamp-2 leading-relaxed">Latest insights and updates from the world of technology and local community services.</p>
-                    <button className="text-[#834fff] font-bold text-sm flex items-center gap-2 group-hover:translate-x-1 transition-transform">
-                      Read More <span className="material-icons-round text-sm">arrow_forward</span>
-                    </button>
-                  </div>
-                </div>
-              ))}
+            <div className="backdrop-blur-xl bg-white dark:bg-[#1a1a1a] border border-gray-200 dark:border-white/10 rounded-[32px] p-8 text-center shadow-sm transition-all duration-500">
+              <div className="w-20 h-20 bg-[#834fff]/10 rounded-full flex items-center justify-center text-[#834fff] mx-auto mb-6">
+                <span className="material-icons-round text-4xl">rss_feed</span>
+              </div>
+              <h3 className="font-headline font-extrabold text-xl mb-4">Latest Updates</h3>
+              <p className="text-sm text-gray-600 dark:text-gray-400 mb-8 leading-relaxed">
+                Stay updated with the latest news, tech trends, and community support stories from Sanjay Vaishya.
+              </p>
+              <a 
+                href="https://sanjay.indiacybercafe.com/updates" 
+                target="_blank" 
+                className="inline-flex items-center gap-3 bg-[#834fff] text-white font-bold px-8 py-4 rounded-2xl shadow-xl shadow-[#834fff]/30 hover:bg-[#6d23f9] transition-all active:scale-95"
+              >
+                View All Updates
+                <span className="material-icons-round">open_in_new</span>
+              </a>
             </div>
           </motion.div>
         )}

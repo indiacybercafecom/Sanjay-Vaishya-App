@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://app-sanjay.indiacybercafe.com/sitemap.xml
