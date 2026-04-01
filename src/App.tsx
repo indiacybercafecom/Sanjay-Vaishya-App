@@ -428,15 +428,24 @@ export default function App() {
                 </label>
               </div>
 
-              <button onClick={() => setActiveSection('about')} className="w-full backdrop-blur-xl bg-white dark:bg-[#1a1a1a] border border-gray-200 dark:border-white/10 p-5 rounded-[24px] flex items-center justify-between group active:scale-95 transition-all shadow-sm duration-500">
-                <div className="flex items-center gap-4">
-                  <div className="w-12 h-12 rounded-full bg-gray-500/10 flex items-center justify-center text-[#834fff]">
-                    <span className="material-icons-round">person</span>
+              <div className="flex items-center gap-4 w-full">
+                <button onClick={() => setActiveSection('about')} className="flex-1 backdrop-blur-xl bg-white dark:bg-[#1a1a1a] border border-gray-200 dark:border-white/10 p-5 rounded-[24px] flex items-center justify-between group active:scale-95 transition-all shadow-sm duration-500">
+                  <div className="flex items-center gap-4">
+                    <div className="w-12 h-12 rounded-full bg-gray-500/10 flex items-center justify-center text-[#834fff]">
+                      <span className="material-icons-round">person</span>
+                    </div>
+                    <span className="font-bold">About Sanjay</span>
                   </div>
-                  <span className="font-bold">About Sanjay</span>
-                </div>
-                <span className="material-icons-round text-gray-400 group-hover:text-[#834fff] transition-colors">chevron_right</span>
-              </button>
+                  <span className="material-icons-round text-gray-400 group-hover:text-[#834fff] transition-colors">chevron_right</span>
+                </button>
+                <button 
+                  onClick={() => window.open('/about.html', '_blank')}
+                  className="p-5 backdrop-blur-xl bg-white dark:bg-[#1a1a1a] border border-gray-200 dark:border-white/10 rounded-[24px] text-gray-400 hover:text-[#834fff] active:scale-95 transition-all shadow-sm duration-500"
+                  title="Open dedicated About page"
+                >
+                  <span className="material-icons-round">open_in_new</span>
+                </button>
+              </div>
 
               <button onClick={handleShare} className="w-full backdrop-blur-xl bg-white dark:bg-[#1a1a1a] border border-gray-200 dark:border-white/10 p-5 rounded-[24px] flex items-center justify-between group active:scale-95 transition-all shadow-sm duration-500">
                 <div className="flex items-center gap-4">
@@ -458,14 +467,69 @@ export default function App() {
                 <span className="material-icons-round text-gray-400 group-hover:text-[#834fff] transition-colors">chevron_right</span>
               </button>
 
+              <button 
+                onClick={() => {
+                  if (window.confirm("Are you sure you want to request account or data deletion? You will be redirected to our data deletion request page.")) {
+                    window.open('/delete-data.html', '_blank');
+                  }
+                }} 
+                className="w-full backdrop-blur-xl bg-white dark:bg-[#1a1a1a] border border-gray-200 dark:border-white/10 p-5 rounded-[24px] flex items-center justify-between group active:scale-95 transition-all shadow-sm duration-500"
+              >
+                <div className="flex items-center gap-4">
+                  <div className="w-12 h-12 rounded-full bg-red-500/10 flex items-center justify-center text-red-500">
+                    <span className="material-icons-round">delete_outline</span>
+                  </div>
+                  <span className="font-bold text-red-500">Delete Account / Data</span>
+                </div>
+                <span className="material-icons-round text-gray-400 group-hover:text-red-500 transition-colors">chevron_right</span>
+              </button>
+
               <div className="pt-10 text-center space-y-4">
                 <div className="flex justify-center gap-6">
-                  <button onClick={() => setActiveSection('privacy')} className="text-[10px] uppercase tracking-widest text-gray-500 font-bold hover:text-[#834fff]">Privacy Policy</button>
-                  <button onClick={() => setActiveSection('terms')} className="text-[10px] uppercase tracking-widest text-gray-500 font-bold hover:text-[#834fff]">Terms & Conditions</button>
+                  <a href="/privacy.html" target="_blank" className="text-[10px] uppercase tracking-widest text-gray-500 font-bold hover:text-[#834fff]">Privacy Policy</a>
+                  <a href="/terms.html" target="_blank" className="text-[10px] uppercase tracking-widest text-gray-500 font-bold hover:text-[#834fff]">Terms & Conditions</a>
                 </div>
                 <div className="pt-4">
                   <p className="text-[10px] uppercase tracking-widest text-gray-500 font-bold">App Version v1.0.0</p>
                   <p className="text-[10px] text-gray-400 mt-1">Designed with ❤️ for Sanjay Vaishya</p>
+                  <div className="mt-4 flex flex-col gap-2">
+                    <button 
+                      onClick={() => {
+                        navigator.clipboard.writeText(`${window.location.origin}/privacy.html`);
+                        alert('Privacy Policy link copied!');
+                      }}
+                      className="text-[9px] text-[#834fff] hover:underline"
+                    >
+                      Copy Privacy Link
+                    </button>
+                    <button 
+                      onClick={() => {
+                        navigator.clipboard.writeText(`${window.location.origin}/terms.html`);
+                        alert('Terms & Conditions link copied!');
+                      }}
+                      className="text-[9px] text-[#834fff] hover:underline"
+                    >
+                      Copy Terms Link
+                    </button>
+                    <button 
+                      onClick={() => {
+                        navigator.clipboard.writeText(`${window.location.origin}/about.html`);
+                        alert('About Page link copied!');
+                      }}
+                      className="text-[9px] text-[#834fff] hover:underline"
+                    >
+                      Copy About Link
+                    </button>
+                    <button 
+                      onClick={() => {
+                        navigator.clipboard.writeText(`${window.location.origin}/delete-data.html`);
+                        alert('Data Deletion link copied!');
+                      }}
+                      className="text-[9px] text-red-500 hover:underline"
+                    >
+                      Copy Delete Link
+                    </button>
+                  </div>
                 </div>
               </div>
             </div>
