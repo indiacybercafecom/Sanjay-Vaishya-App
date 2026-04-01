@@ -43,7 +43,7 @@ export default function App() {
     window.addEventListener('popstate', handlePopState);
     
     // Set initial history state if not present
-    const navIds = ['home', 'help', 'gallery', 'updates', 'contact', 'settings', 'about'];
+    const navIds = ['home', 'help', 'gallery', 'updates', 'contact', 'settings', 'about', 'privacy', 'terms'];
     const initialSection = window.location.hash.replace('#', '') || 'home';
     if (!window.history.state) {
       window.history.replaceState({ section: initialSection }, '', `#${initialSection}`);
@@ -448,10 +448,20 @@ export default function App() {
                 <span className="material-icons-round text-gray-400 group-hover:text-[#834fff] transition-colors">chevron_right</span>
               </button>
 
+              <button onClick={() => window.open('https://play.google.com/store/apps/details?id=com.sanjayvaishya.app', '_blank')} className="w-full backdrop-blur-xl bg-white dark:bg-[#1a1a1a] border border-gray-200 dark:border-white/10 p-5 rounded-[24px] flex items-center justify-between group active:scale-95 transition-all shadow-sm duration-500">
+                <div className="flex items-center gap-4">
+                  <div className="w-12 h-12 rounded-full bg-gray-500/10 flex items-center justify-center text-[#834fff]">
+                    <span className="material-icons-round">star</span>
+                  </div>
+                  <span className="font-bold">Rate App</span>
+                </div>
+                <span className="material-icons-round text-gray-400 group-hover:text-[#834fff] transition-colors">chevron_right</span>
+              </button>
+
               <div className="pt-10 text-center space-y-4">
                 <div className="flex justify-center gap-6">
-                  <button className="text-[10px] uppercase tracking-widest text-gray-500 font-bold hover:text-[#834fff]">Privacy Policy</button>
-                  <button className="text-[10px] uppercase tracking-widest text-gray-500 font-bold hover:text-[#834fff]">Terms & Conditions</button>
+                  <button onClick={() => setActiveSection('privacy')} className="text-[10px] uppercase tracking-widest text-gray-500 font-bold hover:text-[#834fff]">Privacy Policy</button>
+                  <button onClick={() => setActiveSection('terms')} className="text-[10px] uppercase tracking-widest text-gray-500 font-bold hover:text-[#834fff]">Terms & Conditions</button>
                 </div>
                 <div className="pt-4">
                   <p className="text-[10px] uppercase tracking-widest text-gray-500 font-bold">App Version v1.0.0</p>
@@ -469,27 +479,208 @@ export default function App() {
               <button onClick={() => setActiveSection('settings')} className="p-2 rounded-full bg-white/5">
                 <span className="material-icons-round">arrow_back</span>
               </button>
-              <h2 className="font-headline font-extrabold text-2xl">About Sanjay</h2>
+              <h2 className="font-headline font-extrabold text-2xl">About Sanjay Vaishya</h2>
             </div>
-            <div className="backdrop-blur-xl bg-white dark:bg-[#1a1a1a] border border-gray-200 dark:border-white/10 rounded-[24px] p-8 space-y-8 shadow-sm transition-all duration-500">
-              <img src="https://picsum.photos/seed/sanjay/600/300" alt="About" className="w-full h-48 object-cover rounded-2xl shadow-xl" />
+            <div className="backdrop-blur-xl bg-white dark:bg-[#1a1a1a] border border-gray-200 dark:border-white/10 rounded-[32px] p-8 space-y-8 shadow-sm transition-all duration-500">
+              <div className="relative h-48 rounded-2xl overflow-hidden group">
+                <img src="https://sanjay.indiacybercafe.com/uploads/sanjay/sanjay%20kumar%20vaishya%20hero%20image.png" alt="Sanjay Vaishya" className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700" />
+                <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent"></div>
+                <div className="absolute bottom-4 left-4">
+                  <h3 className="text-white font-headline font-bold text-xl">Sanjay Vaishya</h3>
+                  <p className="text-white/80 text-xs font-bold uppercase tracking-widest">Developer & CEO, India Cyber Cafe</p>
+                </div>
+              </div>
+              
               <div className="space-y-6">
-                <p className="text-sm leading-relaxed text-gray-600 dark:text-gray-400">
-                  Sanjay Vaishya is a dedicated professional based in Singrauli, Madhya Pradesh. He wears multiple hats as a <strong>Cyber Cafe Owner</strong> and a <strong>Developer</strong>.
-                </p>
-                <p className="text-sm leading-relaxed text-gray-600 dark:text-gray-400">
-                  With a passion for technology and community service, Sanjay provides <strong>free assistance</strong> to individuals navigating digital forms, educational admissions, and technical development queries.
-                </p>
+                <section className="space-y-3">
+                  <h4 className="font-headline font-extrabold text-lg text-[#834fff]">Introduction</h4>
+                  <p className="text-sm leading-relaxed text-gray-600 dark:text-gray-400">
+                    Sanjay Vaishya is a visionary <strong>Developer</strong> and the <strong>CEO of India Cyber Cafe</strong>, based in Jobgarh, Singrauli, Madhya Pradesh. With years of experience in digital services, he has dedicated his career to bridging the digital divide in India.
+                  </p>
+                </section>
+
+                <section className="space-y-3">
+                  <h4 className="font-headline font-extrabold text-lg text-[#834fff]">About India Cyber Cafe</h4>
+                  <p className="text-sm leading-relaxed text-gray-600 dark:text-gray-400">
+                    India Cyber Cafe is more than just a cafe; it's a digital hub providing essential services like online form filling, technical support, and developer guidance. We empower local communities by making digital tools accessible to everyone.
+                  </p>
+                </section>
+
+                <section className="space-y-3">
+                  <h4 className="font-headline font-extrabold text-lg text-[#834fff]">Purpose of the App</h4>
+                  <p className="text-sm leading-relaxed text-gray-600 dark:text-gray-400">
+                    The <strong>Sanjay Vaishya App</strong> is designed to provide a direct channel for users to seek <strong>FREE assistance</strong>. Whether you need help with digital services, cyber cafe queries, or basic coding guidance, this app is your companion.
+                  </p>
+                </section>
+
                 <div className="grid grid-cols-2 gap-4 pt-4">
                   <div className="p-5 bg-[#834fff]/5 rounded-[24px] border border-[#834fff]/10">
-                    <h4 className="font-bold text-[#834fff] mb-1">Developer</h4>
-                    <p className="text-[10px] text-gray-500 uppercase tracking-widest font-bold">Building modern digital solutions.</p>
+                    <h4 className="font-bold text-[#834fff] mb-1">Vision</h4>
+                    <p className="text-[10px] text-gray-500 uppercase tracking-widest font-bold">Digital India for everyone.</p>
                   </div>
                   <div className="p-5 bg-[#834fff]/5 rounded-[24px] border border-[#834fff]/10">
-                    <h4 className="font-bold text-[#834fff] mb-1">Support</h4>
-                    <p className="text-[10px] text-gray-500 uppercase tracking-widest font-bold">Free community assistance.</p>
+                    <h4 className="font-bold text-[#834fff] mb-1">Mission</h4>
+                    <p className="text-[10px] text-gray-500 uppercase tracking-widest font-bold">Empowering through free support.</p>
                   </div>
                 </div>
+
+                <section className="space-y-3 pt-4">
+                  <h4 className="font-headline font-extrabold text-lg text-[#834fff]">Contact Information</h4>
+                  <div className="space-y-2">
+                    <p className="text-sm text-gray-600 dark:text-gray-400 flex items-center gap-2">
+                      <span className="material-icons-round text-sm">email</span>
+                      sanjayvaishya.dev@gmail.com
+                    </p>
+                    <p className="text-sm text-gray-600 dark:text-gray-400 flex items-center gap-2">
+                      <span className="material-icons-round text-sm">public</span>
+                      sanjay.indiacybercafe.com
+                    </p>
+                  </div>
+                </section>
+              </div>
+              <div className="pt-4 border-t border-gray-100 dark:border-white/5">
+                <p className="text-[9px] text-gray-400 uppercase tracking-widest font-bold text-center">
+                  Keywords: developer app, cyber cafe services, digital services India, Sanjay Vaishya, India Cyber Cafe
+                </p>
+              </div>
+            </div>
+          </motion.div>
+        )}
+
+        {/* Privacy Policy Section */}
+        {activeSection === 'privacy' && (
+          <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="space-y-6">
+            <div className="flex items-center gap-4 mb-2">
+              <button onClick={() => setActiveSection('settings')} className="p-2 rounded-full bg-white/5">
+                <span className="material-icons-round">arrow_back</span>
+              </button>
+              <h2 className="font-headline font-extrabold text-2xl">Privacy Policy</h2>
+            </div>
+            <div className="backdrop-blur-xl bg-white dark:bg-[#1a1a1a] border border-gray-200 dark:border-white/10 rounded-[32px] p-8 space-y-6 shadow-sm transition-all duration-500">
+              <p className="text-[10px] font-bold text-[#834fff] uppercase tracking-widest">Last Updated: April 01, 2026</p>
+              
+              <div className="prose prose-sm dark:prose-invert max-w-none space-y-6">
+                <section>
+                  <h3 className="text-lg font-bold">Introduction</h3>
+                  <p className="text-sm text-gray-600 dark:text-gray-400 leading-relaxed">
+                    Welcome to the Sanjay Vaishya App. Your privacy is important to us. This policy explains how we handle your information.
+                  </p>
+                </section>
+
+                <section>
+                  <h3 className="text-lg font-bold">Information We Collect</h3>
+                  <p className="text-sm text-gray-600 dark:text-gray-400 leading-relaxed">
+                    We do not require any login or registration. We only collect information you voluntarily provide through our contact form (such as your name and query) to assist you.
+                  </p>
+                </section>
+
+                <section>
+                  <h3 className="text-lg font-bold">How We Use Information</h3>
+                  <p className="text-sm text-gray-600 dark:text-gray-400 leading-relaxed">
+                    The information you provide is used solely to respond to your requests and provide the assistance you seek. <strong>We do not sell user data to any third parties.</strong>
+                  </p>
+                </section>
+
+                <section>
+                  <h3 className="text-lg font-bold">Log Data & Cookies</h3>
+                  <p className="text-sm text-gray-600 dark:text-gray-400 leading-relaxed">
+                    As a WebView-based app, we may collect standard log data and use cookies to improve your browsing experience on our website content.
+                  </p>
+                </section>
+
+                <section>
+                  <h3 className="text-lg font-bold">Third-Party Services</h3>
+                  <p className="text-sm text-gray-600 dark:text-gray-400 leading-relaxed">
+                    We may use third-party services like Google Analytics to understand app usage. These services have their own privacy policies.
+                  </p>
+                </section>
+
+                <section>
+                  <h3 className="text-lg font-bold">Data Security</h3>
+                  <p className="text-sm text-gray-600 dark:text-gray-400 leading-relaxed">
+                    We take reasonable measures to protect your data, but remember that no method of transmission over the internet is 100% secure.
+                  </p>
+                </section>
+
+                <section>
+                  <h3 className="text-lg font-bold">Children’s Privacy</h3>
+                  <p className="text-sm text-gray-600 dark:text-gray-400 leading-relaxed">
+                    Our app does not target children under 13. We do not knowingly collect data from children.
+                  </p>
+                </section>
+
+                <section>
+                  <h3 className="text-lg font-bold">Contact Us</h3>
+                  <p className="text-sm text-gray-600 dark:text-gray-400 leading-relaxed">
+                    If you have questions, contact us at:<br />
+                    Email: sanjayvaishya.dev@gmail.com<br />
+                    Phone: +91 9203251821
+                  </p>
+                </section>
+              </div>
+            </div>
+          </motion.div>
+        )}
+
+        {/* Terms & Conditions Section */}
+        {activeSection === 'terms' && (
+          <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="space-y-6">
+            <div className="flex items-center gap-4 mb-2">
+              <button onClick={() => setActiveSection('settings')} className="p-2 rounded-full bg-white/5">
+                <span className="material-icons-round">arrow_back</span>
+              </button>
+              <h2 className="font-headline font-extrabold text-2xl">Terms & Conditions</h2>
+            </div>
+            <div className="backdrop-blur-xl bg-white dark:bg-[#1a1a1a] border border-gray-200 dark:border-white/10 rounded-[32px] p-8 space-y-6 shadow-sm transition-all duration-500">
+              <div className="prose prose-sm dark:prose-invert max-w-none space-y-6">
+                <section>
+                  <h3 className="text-lg font-bold">Acceptance of Terms</h3>
+                  <p className="text-sm text-gray-600 dark:text-gray-400 leading-relaxed">
+                    By using the Sanjay Vaishya App, you agree to these Terms & Conditions. If you do not agree, please do not use the app.
+                  </p>
+                </section>
+
+                <section>
+                  <h3 className="text-lg font-bold">Intellectual Property</h3>
+                  <p className="text-sm text-gray-600 dark:text-gray-400 leading-relaxed">
+                    All content, including text, images, and logos, belongs to <strong>Sanjay Vaishya / India Cyber Cafe</strong>. You may not use it without permission.
+                  </p>
+                </section>
+
+                <section>
+                  <h3 className="text-lg font-bold">User Responsibilities</h3>
+                  <p className="text-sm text-gray-600 dark:text-gray-400 leading-relaxed">
+                    You agree to use the app for lawful purposes only and not to provide false information through our contact forms.
+                  </p>
+                </section>
+
+                <section>
+                  <h3 className="text-lg font-bold">Limitation of Liability</h3>
+                  <p className="text-sm text-gray-600 dark:text-gray-400 leading-relaxed">
+                    We provide assistance on an "as-is" basis. We are not liable for any damages resulting from the use or inability to use the app.
+                  </p>
+                </section>
+
+                <section>
+                  <h3 className="text-lg font-bold">External Links</h3>
+                  <p className="text-sm text-gray-600 dark:text-gray-400 leading-relaxed">
+                    The app contains links to external sites. We are not responsible for the content or privacy practices of those sites.
+                  </p>
+                </section>
+
+                <section>
+                  <h3 className="text-lg font-bold">Governing Law</h3>
+                  <p className="text-sm text-gray-600 dark:text-gray-400 leading-relaxed">
+                    These terms are governed by the laws of <strong>India</strong>. Any disputes will be subject to the jurisdiction of courts in Singrauli, MP.
+                  </p>
+                </section>
+
+                <section>
+                  <h3 className="text-lg font-bold">Contact</h3>
+                  <p className="text-sm text-gray-600 dark:text-gray-400 leading-relaxed">
+                    For any queries regarding these terms, email us at sanjayvaishya.dev@gmail.com.
+                  </p>
+                </section>
               </div>
             </div>
           </motion.div>
