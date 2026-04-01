@@ -1,76 +1,111 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" class="dark">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Terms & Conditions - Sanjay Vaishya App</title>
     <link rel="icon" href="https://indiacybercafe.com/wp-content/uploads/2026/03/sanjay_siteicon.png">
     <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&family=Manrope:wght@800&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Manrope:wght@800&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons+Round" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    fontFamily: {
+                        headline: ['Manrope', 'sans-serif'],
+                        sans: ['Inter', 'sans-serif'],
+                    },
+                }
+            }
+        }
+    </script>
     <style>
         body { font-family: 'Inter', sans-serif; background-color: #0e0e0e; color: #ffffff; }
-        .headline { font-family: 'Manrope', sans-serif; }
+        .font-headline { font-family: 'Manrope', sans-serif; }
+        ::-webkit-scrollbar { display: none; }
     </style>
 </head>
-<body class="p-6 md:p-12 max-w-4xl mx-auto">
-    <header class="mb-12 text-center">
-        <img src="https://indiacybercafe.com/wp-content/uploads/2026/03/sanjay_siteicon.png" alt="Logo" class="w-20 h-20 mx-auto mb-6 rounded-2xl shadow-2xl shadow-[#834fff]/20">
-        <h1 class="headline text-4xl font-extrabold mb-2">Terms & Conditions</h1>
-        <p class="text-[#834fff] font-bold uppercase tracking-widest text-xs">Sanjay Vaishya App</p>
+<body class="min-h-screen bg-white dark:bg-[#0e0e0e] text-gray-900 dark:text-white transition-colors duration-500">
+    
+    <!-- Header -->
+    <header class="sticky top-0 z-50 backdrop-blur-2xl bg-white/80 dark:bg-[#0e0e0e]/80 border-b border-gray-100 dark:border-white/5 px-6 py-4 flex items-center justify-between transition-all duration-500 shadow-sm dark:shadow-none">
+        <div class="flex items-center gap-3">
+            <img src="https://indiacybercafe.com/wp-content/uploads/2026/03/sanjay_siteicon.png" alt="Logo" class="w-10 h-10 rounded-full border-2 border-[#834fff]" />
+            <div>
+                <h1 class="font-headline font-extrabold text-lg leading-tight tracking-tight">Sanjay Vaishya</h1>
+                <p class="text-[10px] font-bold text-[#834fff] uppercase tracking-widest leading-none">Developer</p>
+            </div>
+        </div>
+        <a href="/" class="w-10 h-10 rounded-full bg-gray-100 dark:bg-white/5 flex items-center justify-center text-gray-500 dark:text-gray-400 active:scale-90 transition-all hover:bg-gray-200 dark:hover:bg-white/10">
+            <span class="material-icons-round text-xl">home</span>
+        </a>
     </header>
 
-    <main class="bg-[#1a1a1a] border border-white/10 rounded-[32px] p-8 md:p-12 shadow-2xl space-y-8">
-        <section class="space-y-4">
-            <h2 class="headline text-2xl font-bold">1. Acceptance of Terms</h2>
-            <p class="text-gray-400 leading-relaxed">By downloading or using the Sanjay Vaishya App, you agree to be bound by these Terms & Conditions. If you do not agree to these terms, please do not use the application.</p>
-        </section>
+    <main class="px-6 py-8 max-w-lg mx-auto space-y-6">
+        <div class="flex items-center gap-4 mb-2">
+            <a href="/" class="p-2 rounded-full bg-gray-100 dark:bg-white/5 text-gray-500 dark:text-gray-400">
+                <span class="material-icons-round">arrow_back</span>
+            </a>
+            <h2 class="font-headline font-extrabold text-2xl">Terms & Conditions</h2>
+        </div>
 
-        <section class="space-y-4">
-            <h2 class="headline text-2xl font-bold">2. Use of the App</h2>
-            <p class="text-gray-400 leading-relaxed">The app is provided to offer digital assistance and information. You agree to use the app only for lawful purposes and in a way that does not infringe the rights of others.</p>
-        </section>
+        <div class="backdrop-blur-xl bg-white dark:bg-[#1a1a1a] border border-gray-200 dark:border-white/10 rounded-[32px] p-8 space-y-6 shadow-sm dark:shadow-2xl transition-all duration-500">
+            <div class="prose prose-sm dark:prose-invert max-w-none space-y-6">
+                <section>
+                    <h3 class="text-lg font-bold font-headline">Acceptance of Terms</h3>
+                    <p class="text-sm text-gray-600 dark:text-gray-400 leading-relaxed">
+                        By using the Sanjay Vaishya App, you agree to these Terms & Conditions. If you do not agree, please do not use the app.
+                    </p>
+                </section>
 
-        <section class="space-y-4">
-            <h2 class="headline text-2xl font-bold">3. Intellectual Property Rights</h2>
-            <p class="text-gray-400 leading-relaxed">All content, including but not limited to text, graphics, logos, and images, is the property of <strong>Sanjay Vaishya / India Cyber Cafe</strong> and is protected by copyright laws. You may not reproduce or distribute any content without prior written consent.</p>
-        </section>
+                <section>
+                    <h3 class="text-lg font-bold font-headline">Intellectual Property</h3>
+                    <p class="text-sm text-gray-600 dark:text-gray-400 leading-relaxed">
+                        All content, including text, images, and logos, belongs to <strong>Sanjay Vaishya / India Cyber Cafe</strong>. You may not use it without permission.
+                    </p>
+                </section>
 
-        <section class="space-y-4">
-            <h2 class="headline text-2xl font-bold">4. User Responsibilities</h2>
-            <p class="text-gray-400 leading-relaxed">You are responsible for the information you provide through our contact forms. You agree not to submit any content that is defamatory, offensive, or violates any laws.</p>
-        </section>
+                <section>
+                    <h3 class="text-lg font-bold font-headline">User Responsibilities</h3>
+                    <p class="text-sm text-gray-600 dark:text-gray-400 leading-relaxed">
+                        You agree to use the app for lawful purposes only and not to provide false information through our contact forms.
+                    </p>
+                </section>
 
-        <section class="space-y-4">
-            <h2 class="headline text-2xl font-bold">5. Limitation of Liability</h2>
-            <p class="text-gray-400 leading-relaxed">We provide assistance on an "as-is" basis. Sanjay Vaishya shall not be liable for any direct, indirect, or incidental damages resulting from the use or inability to use the app or the services provided.</p>
-        </section>
+                <section>
+                    <h3 class="text-lg font-bold font-headline">Limitation of Liability</h3>
+                    <p class="text-sm text-gray-600 dark:text-gray-400 leading-relaxed">
+                        We provide assistance on an "as-is" basis. We are not liable for any damages resulting from the use or inability to use the app.
+                    </p>
+                </section>
 
-        <section class="space-y-4">
-            <h2 class="headline text-2xl font-bold">6. External Links Disclaimer</h2>
-            <p class="text-gray-400 leading-relaxed">The app contains links to external websites (like sanjay.indiacybercafe.com). We are not responsible for the content, accuracy, or privacy practices of these external sites.</p>
-        </section>
+                <section>
+                    <h3 class="text-lg font-bold font-headline">External Links</h3>
+                    <p class="text-sm text-gray-600 dark:text-gray-400 leading-relaxed">
+                        The app contains links to external sites. We are not responsible for the content or privacy practices of those sites.
+                    </p>
+                </section>
 
-        <section class="space-y-4">
-            <h2 class="headline text-2xl font-bold">7. Termination</h2>
-            <p class="text-gray-400 leading-relaxed">We reserve the right to terminate or suspend access to the app at any time, without prior notice, for conduct that we believe violates these Terms or is harmful to other users.</p>
-        </section>
+                <section>
+                    <h3 class="text-lg font-bold font-headline">Governing Law</h3>
+                    <p class="text-sm text-gray-600 dark:text-gray-400 leading-relaxed">
+                        These terms are governed by the laws of <strong>India</strong>. Any disputes will be subject to the jurisdiction of courts in Singrauli, MP.
+                    </p>
+                </section>
 
-        <section class="space-y-4">
-            <h2 class="headline text-2xl font-bold">8. Governing Law</h2>
-            <p class="text-gray-400 leading-relaxed">These Terms & Conditions are governed by and construed in accordance with the laws of <strong>India</strong>. Any disputes shall be subject to the exclusive jurisdiction of the courts in Singrauli, Madhya Pradesh.</p>
-        </section>
-
-        <section class="space-y-4">
-            <h2 class="headline text-2xl font-bold">9. Contact Information</h2>
-            <div class="text-gray-400 leading-relaxed bg-white/5 p-6 rounded-2xl border border-white/5">
-                <p><strong>Developer:</strong> Sanjay Vaishya</p>
-                <p><strong>Email:</strong> sanjayvaishya.dev@gmail.com</p>
-                <p><strong>Website:</strong> <a href="https://sanjay.indiacybercafe.com" class="text-[#834fff]">sanjay.indiacybercafe.com</a></p>
+                <section>
+                    <h3 class="text-lg font-bold font-headline">Contact</h3>
+                    <p class="text-sm text-gray-600 dark:text-gray-400 leading-relaxed">
+                        For any queries regarding these terms, email us at <strong>sanjayvaishya.dev@gmail.com</strong>.
+                    </p>
+                </section>
             </div>
-        </section>
+        </div>
     </main>
 
-    <footer class="mt-12 text-center text-gray-500 text-xs">
+    <footer class="py-12 text-center text-gray-500 text-[10px] font-bold uppercase tracking-widest">
         <p>&copy; 2026 Sanjay Vaishya. All rights reserved.</p>
     </footer>
 </body>

@@ -1,70 +1,141 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" class="dark">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Delete Account & Data - Sanjay Vaishya App</title>
     <link rel="icon" href="https://indiacybercafe.com/wp-content/uploads/2026/03/sanjay_siteicon.png">
     <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&family=Manrope:wght@800&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Manrope:wght@800&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons+Round" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    fontFamily: {
+                        headline: ['Manrope', 'sans-serif'],
+                        sans: ['Inter', 'sans-serif'],
+                    },
+                }
+            }
+        }
+    </script>
     <style>
         body { font-family: 'Inter', sans-serif; background-color: #0e0e0e; color: #ffffff; }
-        .headline { font-family: 'Manrope', sans-serif; }
+        .font-headline { font-family: 'Manrope', sans-serif; }
+        ::-webkit-scrollbar { display: none; }
     </style>
 </head>
-<body class="p-6 md:p-12 max-w-4xl mx-auto">
-    <header class="mb-12 text-center">
-        <img src="https://indiacybercafe.com/wp-content/uploads/2026/03/sanjay_siteicon.png" alt="Logo" class="w-20 h-20 mx-auto mb-6 rounded-2xl shadow-2xl shadow-[#834fff]/20">
-        <h1 class="headline text-4xl font-extrabold mb-2 text-red-500">Delete Account & Data</h1>
-        <p class="text-gray-400 font-bold uppercase tracking-widest text-xs">Sanjay Vaishya App</p>
+<body class="min-h-screen bg-white dark:bg-[#0e0e0e] text-gray-900 dark:text-white transition-colors duration-500">
+    
+    <!-- Header -->
+    <header class="sticky top-0 z-50 backdrop-blur-2xl bg-white/80 dark:bg-[#0e0e0e]/80 border-b border-gray-100 dark:border-white/5 px-6 py-4 flex items-center justify-between transition-all duration-500 shadow-sm dark:shadow-none">
+        <div class="flex items-center gap-3">
+            <img src="https://indiacybercafe.com/wp-content/uploads/2026/03/sanjay_siteicon.png" alt="Logo" class="w-10 h-10 rounded-full border-2 border-[#834fff]" />
+            <div>
+                <h1 class="font-headline font-extrabold text-lg leading-tight tracking-tight">Sanjay Vaishya</h1>
+                <p class="text-[10px] font-bold text-[#834fff] uppercase tracking-widest leading-none">Developer</p>
+            </div>
+        </div>
+        <a href="/" class="w-10 h-10 rounded-full bg-gray-100 dark:bg-white/5 flex items-center justify-center text-gray-500 dark:text-gray-400 active:scale-90 transition-all hover:bg-gray-200 dark:hover:bg-white/10">
+            <span class="material-icons-round text-xl">home</span>
+        </a>
     </header>
 
-    <main class="bg-[#1a1a1a] border border-white/10 rounded-[32px] p-8 md:p-12 shadow-2xl space-y-8">
-        <section class="space-y-4">
-            <h2 class="headline text-2xl font-bold">Data Deletion Request</h2>
-            <p class="text-gray-400 leading-relaxed">
-                In compliance with Google Play's User Data policy, we provide a simple way for users to request the deletion of their account and any associated data.
-            </p>
-        </section>
-
-        <section class="space-y-4">
-            <h2 class="headline text-2xl font-bold">How to Request Deletion</h2>
-            <p class="text-gray-400 leading-relaxed">
-                Since the Sanjay Vaishya App does not use a traditional login system, most user interactions are anonymous. However, if you have provided any personal information through our contact forms or other channels, you can request its deletion by following these steps:
-            </p>
-            <ul class="list-disc list-inside text-gray-400 space-y-2 ml-4">
-                <li>Send an email to <span class="text-[#834fff] font-bold">sanjayvaishya.dev@gmail.com</span></li>
-                <li>Use the subject line: <span class="text-white font-mono bg-white/5 px-2 py-1 rounded">Data Deletion Request - [Your Name]</span></li>
-                <li>Include details of the information you would like us to remove.</li>
-            </ul>
-        </section>
-
-        <section class="space-y-4">
-            <h2 class="headline text-2xl font-bold">What Happens Next?</h2>
-            <p class="text-gray-400 leading-relaxed">
-                Once we receive your request, our team will verify the details and process the deletion within <strong>7-10 business days</strong>. You will receive a confirmation email once the data has been permanently removed from our records.
-            </p>
-        </section>
-
-        <section class="space-y-4">
-            <h2 class="headline text-2xl font-bold">Important Note</h2>
-            <p class="text-gray-400 leading-relaxed italic">
-                Please note that some data may be retained for a limited period if required by law or for legitimate business purposes (e.g., security, fraud prevention, or financial record-keeping).
-            </p>
-        </section>
-
-        <div class="pt-8 border-t border-white/5">
-            <a href="/" class="inline-flex items-center gap-2 text-[#834fff] font-bold hover:underline">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-                    <path fill-rule="evenodd" d="M9.707 16.707a1 1 0 01-1.414 0l-6-6a1 1 0 010-1.414l6-6a1 1 0 011.414 1.414L5.414 9H17a1 1 0 110 2H5.414l4.293 4.293a1 1 0 010 1.414z" clip-rule="evenodd" />
-                </svg>
-                Back to App
+    <main class="px-6 py-8 max-w-lg mx-auto space-y-6">
+        <div class="flex items-center gap-4 mb-2">
+            <a href="/" class="p-2 rounded-full bg-gray-100 dark:bg-white/5 text-gray-500 dark:text-gray-400">
+                <span class="material-icons-round">arrow_back</span>
             </a>
+            <h2 class="font-headline font-extrabold text-2xl text-red-500">Delete Data</h2>
         </div>
+
+        <div class="backdrop-blur-xl bg-white dark:bg-[#1a1a1a] border border-gray-200 dark:border-white/10 rounded-[32px] p-8 space-y-8 shadow-sm dark:shadow-2xl transition-all duration-500">
+            <div class="space-y-4">
+                <h3 class="font-headline font-bold text-lg">Select Data to Delete</h3>
+                <p class="text-sm text-gray-600 dark:text-gray-400">Please select the types of data you would like to request deletion for:</p>
+                
+                <div class="space-y-3" id="options-container">
+                    <!-- Options will be rendered here -->
+                </div>
+            </div>
+
+            <div class="bg-red-500/5 border border-red-500/10 rounded-2xl p-5">
+                <p class="text-xs text-red-500 leading-relaxed font-bold">
+                    Note: Clicking the button below will open your email app with a pre-filled request. Once sent, we will process your deletion within 7-10 business days.
+                </p>
+            </div>
+
+            <button 
+                onclick="sendDeleteRequest()"
+                class="w-full bg-red-500 text-white font-bold py-5 rounded-2xl shadow-xl shadow-red-500/30 hover:bg-red-600 transition-all flex items-center justify-center gap-3 active:scale-95"
+            >
+                <span class="material-icons-round">send</span>
+                Send Deletion Request
+            </button>
+        </div>
+
+        <section class="backdrop-blur-xl bg-white dark:bg-[#1a1a1a] border border-gray-200 dark:border-white/10 rounded-[32px] p-8 space-y-4 shadow-sm transition-all duration-500">
+            <h2 class="font-headline text-xl font-bold">Google Play Policy Compliance</h2>
+            <p class="text-sm text-gray-600 dark:text-gray-400 leading-relaxed">
+                In compliance with Google Play's User Data policy, we provide this dedicated channel for users to request the deletion of their account and any associated data.
+            </p>
+            <p class="text-sm text-gray-600 dark:text-gray-400 leading-relaxed">
+                Since the Sanjay Vaishya App does not use a traditional login system, most user interactions are anonymous. However, if you have provided any personal information through our contact forms, you can request its deletion here.
+            </p>
+        </section>
     </main>
 
-    <footer class="mt-12 text-center text-gray-500 text-xs">
+    <footer class="py-12 text-center text-gray-500 text-[10px] font-bold uppercase tracking-widest">
         <p>&copy; 2026 Sanjay Vaishya. All rights reserved.</p>
     </footer>
+
+    <script>
+        const options = [
+            { id: 'contactData', label: 'Contact Form Data', checked: true },
+            { id: 'usageLogs', label: 'App Usage Logs', checked: false },
+            { id: 'personalInfo', label: 'Personal Information', checked: false },
+            { id: 'other', label: 'Other Data', checked: false }
+        ];
+
+        function renderOptions() {
+            const container = document.getElementById('options-container');
+            container.innerHTML = options.map(opt => `
+                <label class="flex items-center gap-4 p-4 bg-gray-50 dark:bg-white/5 rounded-2xl cursor-pointer hover:bg-gray-100 dark:hover:bg-white/10 transition-all">
+                    <input 
+                        type="checkbox" 
+                        ${opt.checked ? 'checked' : ''} 
+                        onchange="toggleOption('${opt.id}')"
+                        class="w-5 h-5 rounded border-gray-300 text-[#834fff] focus:ring-[#834fff]"
+                    >
+                    <span class="font-bold text-sm">${opt.label}</span>
+                </label>
+            `).join('');
+        }
+
+        function toggleOption(id) {
+            const opt = options.find(o => o.id === id);
+            if (opt) opt.checked = !opt.checked;
+        }
+
+        function sendDeleteRequest() {
+            const selected = options
+                .filter(o => o.checked)
+                .map(o => o.label);
+
+            if (selected.length === 0) {
+                alert('Please select at least one data type to delete.');
+                return;
+            }
+
+            const subject = `Data Deletion Request - Sanjay Vaishya App`;
+            const body = `Hello Sanjay,\n\nI would like to request the deletion of my data from the Sanjay Vaishya App.\n\nItems to delete:\n${selected.map(s => `- ${s}`).join('\n')}\n\nPlease process this request and confirm once completed.\n\nThank you.`;
+            
+            window.location.href = `mailto:sanjayvaishya.dev@gmail.com?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+        }
+
+        renderOptions();
+    </script>
 </body>
 </html>
