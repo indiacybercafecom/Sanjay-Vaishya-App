@@ -520,8 +520,8 @@ export default function App() {
         {/* About Section */}
         {activeSection === 'about' && (
           <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="space-y-6">
-            <div className="flex items-center gap-4 mb-2">
-              <button onClick={() => navigateTo('settings')} className="p-2 rounded-full bg-white/5">
+            <div className="flex flex-col items-center text-center gap-3 mb-4">
+              <button onClick={() => navigateTo('settings')} className="w-12 h-12 rounded-full bg-gray-100 dark:bg-white/5 flex items-center justify-center text-gray-500 dark:text-gray-400 active:scale-90 transition-all">
                 <span className="material-icons-round">arrow_back</span>
               </button>
               <h2 className="font-headline font-extrabold text-2xl">About Sanjay Vaishya</h2>
@@ -595,8 +595,8 @@ export default function App() {
         {/* Privacy Policy Section */}
         {activeSection === 'privacy' && (
           <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="space-y-6">
-            <div className="flex items-center gap-4 mb-2">
-              <button onClick={() => navigateTo('settings')} className="p-2 rounded-full bg-white/5">
+            <div className="flex flex-col items-center text-center gap-3 mb-4">
+              <button onClick={() => navigateTo('settings')} className="w-12 h-12 rounded-full bg-gray-100 dark:bg-white/5 flex items-center justify-center text-gray-500 dark:text-gray-400 active:scale-90 transition-all">
                 <span className="material-icons-round">arrow_back</span>
               </button>
               <h2 className="font-headline font-extrabold text-2xl">Privacy Policy</h2>
@@ -670,8 +670,8 @@ export default function App() {
         {/* Terms & Conditions Section */}
         {activeSection === 'terms' && (
           <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="space-y-6">
-            <div className="flex items-center gap-4 mb-2">
-              <button onClick={() => navigateTo('settings')} className="p-2 rounded-full bg-white/5">
+            <div className="flex flex-col items-center text-center gap-3 mb-4">
+              <button onClick={() => navigateTo('settings')} className="w-12 h-12 rounded-full bg-gray-100 dark:bg-white/5 flex items-center justify-center text-gray-500 dark:text-gray-400 active:scale-90 transition-all">
                 <span className="material-icons-round">arrow_back</span>
               </button>
               <h2 className="font-headline font-extrabold text-2xl">Terms & Conditions</h2>
@@ -734,8 +734,8 @@ export default function App() {
         {/* Delete Data Section */}
         {activeSection === 'delete-data' && (
           <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="space-y-6">
-            <div className="flex items-center gap-4 mb-2">
-              <button onClick={() => navigateTo('settings')} className="p-2 rounded-full bg-white/5">
+            <div className="flex flex-col items-center text-center gap-3 mb-4">
+              <button onClick={() => navigateTo('settings')} className="w-12 h-12 rounded-full bg-gray-100 dark:bg-white/5 flex items-center justify-center text-gray-500 dark:text-gray-400 active:scale-90 transition-all">
                 <span className="material-icons-round">arrow_back</span>
               </button>
               <h2 className="font-headline font-extrabold text-2xl text-red-500">Delete Data</h2>
