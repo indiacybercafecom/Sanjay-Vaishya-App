@@ -12,6 +12,8 @@ export default function App() {
   const [showSplash, setShowSplash] = useState(true);
   const [galleryImages, setGalleryImages] = useState<{src: string, title: string, desc: string, tag: string}[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const nameRef = React.useRef<HTMLInputElement>(null);
+  const queryRef = React.useRef<HTMLTextAreaElement>(null);
 
   useEffect(() => {
     // Splash screen timer
@@ -27,6 +29,27 @@ export default function App() {
       document.documentElement.classList.add('dark');
     } else {
       document.documentElement.classList.remove('dark');
+    }
+
+    // History management for back button
+    const handlePopState = (event: PopStateEvent) => {
+      if (event.state && event.state.section) {
+        setActiveSection(event.state.section);
+      } else {
+        setActiveSection('home');
+      }
+    };
+
+    window.addEventListener('popstate', handlePopState);
+    
+    // Set initial history state if not present
+    const navIds = ['home', 'help', 'gallery', 'updates', 'contact', 'settings', 'about'];
+    const initialSection = window.location.hash.replace('#', '') || 'home';
+    if (!window.history.state) {
+      window.history.replaceState({ section: initialSection }, '', `#${initialSection}`);
+    }
+    if (navIds.includes(initialSection)) {
+      setActiveSection(initialSection);
     }
 
     // Load specific gallery images
@@ -59,7 +82,10 @@ export default function App() {
       ]);
     }, 1500);
 
-    return () => clearTimeout(timer);
+    return () => {
+      clearTimeout(timer);
+      window.removeEventListener('popstate', handlePopState);
+    };
   }, []);
 
   const toggleTheme = () => {
@@ -78,10 +104,12 @@ export default function App() {
 
   const handleHelpSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    if (!nameRef.current || !queryRef.current) return;
+    
     setIsSubmitting(true);
     
-    const name = (document.getElementById('user-name') as HTMLInputElement).value;
-    const query = (document.getElementById('user-query') as HTMLTextAreaElement).value;
+    const name = nameRef.current.value;
+    const query = queryRef.current.value;
     
     setTimeout(() => {
       const message = `Hello Sanjay, I need assistance.%0A%0AName: ${encodeURIComponent(name)}%0AQuery: ${encodeURIComponent(query)}`;
@@ -255,11 +283,11 @@ export default function App() {
               <form onSubmit={handleHelpSubmit} className="space-y-6">
                 <div className="space-y-2">
                   <label className="block text-xs font-bold uppercase text-gray-500 tracking-widest ml-1">Your Name</label>
-                  <input type="text" id="user-name" required className="w-full bg-gray-100 dark:bg-white/10 border-none rounded-2xl px-5 py-4 focus:ring-2 focus:ring-[#834fff] transition-all" placeholder="Enter your name" />
+                  <input ref={nameRef} type="text" required className="w-full bg-gray-100 dark:bg-white/10 border-none rounded-2xl px-5 py-4 focus:ring-2 focus:ring-[#834fff] transition-all" placeholder="Enter your name" />
                 </div>
                 <div className="space-y-2">
                   <label className="block text-xs font-bold uppercase text-gray-500 tracking-widest ml-1">Your Query</label>
-                  <textarea id="user-query" required rows={4} className="w-full bg-gray-100 dark:bg-white/10 border-none rounded-2xl px-5 py-4 focus:ring-2 focus:ring-[#834fff] transition-all resize-none" placeholder="How can I help you?"></textarea>
+                  <textarea ref={queryRef} required rows={4} className="w-full bg-gray-100 dark:bg-white/10 border-none rounded-2xl px-5 py-4 focus:ring-2 focus:ring-[#834fff] transition-all resize-none" placeholder="How can I help you?"></textarea>
                 </div>
                 <button type="submit" disabled={isSubmitting} className="w-full bg-[#834fff] text-white font-bold py-5 rounded-2xl shadow-xl shadow-[#834fff]/30 hover:bg-[#6d23f9] transition-all flex items-center justify-center gap-3 active:scale-95 disabled:opacity-70 disabled:cursor-not-allowed">
                   {isSubmitting ? (
@@ -505,8 +533,11 @@ export default function App() {
     </div>
   );
 
-  function navigateTo(sectionId: string) {
+  function navigateTo(sectionId: string, push = true) {
     setActiveSection(sectionId);
+    if (push) {
+      window.history.pushState({ section: sectionId }, '', `#${sectionId}`);
+    }
     window.scrollTo(0, 0);
   }
 }
