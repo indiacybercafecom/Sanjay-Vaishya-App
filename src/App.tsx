@@ -10,6 +10,13 @@ export default function App() {
   const [activeSection, setActiveSection] = useState('home');
   const [isDarkMode, setIsDarkMode] = useState(true);
   const [showSplash, setShowSplash] = useState(true);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [deleteOptions, setDeleteOptions] = useState({
+    contactData: true,
+    usageLogs: false,
+    personalInfo: false,
+    other: false
+  });
   const [galleryImages, setGalleryImages] = useState<{src: string, title: string, desc: string, tag: string}[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const nameRef = React.useRef<HTMLInputElement>(null);
@@ -43,7 +50,7 @@ export default function App() {
     window.addEventListener('popstate', handlePopState);
     
     // Set initial history state if not present
-    const navIds = ['home', 'help', 'gallery', 'updates', 'contact', 'settings', 'about', 'privacy', 'terms'];
+    const navIds = ['home', 'help', 'gallery', 'updates', 'contact', 'settings', 'about', 'privacy', 'terms', 'delete-data'];
     const initialSection = window.location.hash.replace('#', '') || 'home';
     if (!window.history.state) {
       window.history.replaceState({ section: initialSection }, '', `#${initialSection}`);
@@ -124,15 +131,31 @@ export default function App() {
         await navigator.share({
           title: 'Sanjay Vaishya - Developer',
           text: 'Check out Sanjay Vaishya\'s professional portfolio and get free assistance.',
-          url: window.location.href
+          url: window.location.origin
         });
       } catch (err) {
         console.log('Share failed:', err);
       }
     } else {
-      navigator.clipboard.writeText(window.location.href);
+      navigator.clipboard.writeText(window.location.origin);
       alert('Link copied to clipboard!');
     }
+  };
+
+  const sendDeleteRequest = () => {
+    const selected = Object.entries(deleteOptions)
+      .filter(([_, val]) => val)
+      .map(([key, _]) => {
+        if (key === 'contactData') return 'Contact Form Data';
+        if (key === 'usageLogs') return 'App Usage Logs';
+        if (key === 'personalInfo') return 'Personal Information';
+        return 'Other Data';
+      });
+
+    const subject = `Data Deletion Request - Sanjay Vaishya App`;
+    const body = `Hello Sanjay,%0A%0AI would like to request the deletion of my data from the Sanjay Vaishya App.%0A%0AItems to delete:%0A${selected.map(s => `- ${s}`).join('%0A')}%0A%0APlease process this request and confirm once completed.%0A%0AThank you.`;
+    
+    window.location.href = `mailto:sanjayvaishya.dev@gmail.com?subject=${encodeURIComponent(subject)}&body=${body}`;
   };
 
   const navItems = [
@@ -429,7 +452,7 @@ export default function App() {
               </div>
 
               <div className="flex items-center gap-4 w-full">
-                <button onClick={() => setActiveSection('about')} className="flex-1 backdrop-blur-xl bg-white dark:bg-[#1a1a1a] border border-gray-200 dark:border-white/10 p-5 rounded-[24px] flex items-center justify-between group active:scale-95 transition-all shadow-sm duration-500">
+                <button onClick={() => navigateTo('about')} className="flex-1 backdrop-blur-xl bg-white dark:bg-[#1a1a1a] border border-gray-200 dark:border-white/10 p-5 rounded-[24px] flex items-center justify-between group active:scale-95 transition-all shadow-sm duration-500">
                   <div className="flex items-center gap-4">
                     <div className="w-12 h-12 rounded-full bg-gray-500/10 flex items-center justify-center text-[#834fff]">
                       <span className="material-icons-round">person</span>
@@ -468,11 +491,7 @@ export default function App() {
               </button>
 
               <button 
-                onClick={() => {
-                  if (window.confirm("Are you sure you want to request account or data deletion? You will be redirected to our data deletion request page.")) {
-                    window.open('/delete-data.html', '_blank');
-                  }
-                }} 
+                onClick={() => setShowDeleteConfirm(true)} 
                 className="w-full backdrop-blur-xl bg-white dark:bg-[#1a1a1a] border border-gray-200 dark:border-white/10 p-5 rounded-[24px] flex items-center justify-between group active:scale-95 transition-all shadow-sm duration-500"
               >
                 <div className="flex items-center gap-4">
@@ -486,50 +505,12 @@ export default function App() {
 
               <div className="pt-10 text-center space-y-4">
                 <div className="flex justify-center gap-6">
-                  <a href="/privacy.html" target="_blank" className="text-[10px] uppercase tracking-widest text-gray-500 font-bold hover:text-[#834fff]">Privacy Policy</a>
-                  <a href="/terms.html" target="_blank" className="text-[10px] uppercase tracking-widest text-gray-500 font-bold hover:text-[#834fff]">Terms & Conditions</a>
+                  <button onClick={() => navigateTo('privacy')} className="text-[10px] uppercase tracking-widest text-gray-500 font-bold hover:text-[#834fff]">Privacy Policy</button>
+                  <button onClick={() => navigateTo('terms')} className="text-[10px] uppercase tracking-widest text-gray-500 font-bold hover:text-[#834fff]">Terms & Conditions</button>
                 </div>
                 <div className="pt-4">
                   <p className="text-[10px] uppercase tracking-widest text-gray-500 font-bold">App Version v1.0.0</p>
                   <p className="text-[10px] text-gray-400 mt-1">Designed with ❤️ for Sanjay Vaishya</p>
-                  <div className="mt-4 flex flex-col gap-2">
-                    <button 
-                      onClick={() => {
-                        navigator.clipboard.writeText(`${window.location.origin}/privacy.html`);
-                        alert('Privacy Policy link copied!');
-                      }}
-                      className="text-[9px] text-[#834fff] hover:underline"
-                    >
-                      Copy Privacy Link
-                    </button>
-                    <button 
-                      onClick={() => {
-                        navigator.clipboard.writeText(`${window.location.origin}/terms.html`);
-                        alert('Terms & Conditions link copied!');
-                      }}
-                      className="text-[9px] text-[#834fff] hover:underline"
-                    >
-                      Copy Terms Link
-                    </button>
-                    <button 
-                      onClick={() => {
-                        navigator.clipboard.writeText(`${window.location.origin}/about.html`);
-                        alert('About Page link copied!');
-                      }}
-                      className="text-[9px] text-[#834fff] hover:underline"
-                    >
-                      Copy About Link
-                    </button>
-                    <button 
-                      onClick={() => {
-                        navigator.clipboard.writeText(`${window.location.origin}/delete-data.html`);
-                        alert('Data Deletion link copied!');
-                      }}
-                      className="text-[9px] text-red-500 hover:underline"
-                    >
-                      Copy Delete Link
-                    </button>
-                  </div>
                 </div>
               </div>
             </div>
@@ -540,7 +521,7 @@ export default function App() {
         {activeSection === 'about' && (
           <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="space-y-6">
             <div className="flex items-center gap-4 mb-2">
-              <button onClick={() => setActiveSection('settings')} className="p-2 rounded-full bg-white/5">
+              <button onClick={() => navigateTo('settings')} className="p-2 rounded-full bg-white/5">
                 <span className="material-icons-round">arrow_back</span>
               </button>
               <h2 className="font-headline font-extrabold text-2xl">About Sanjay Vaishya</h2>
@@ -615,7 +596,7 @@ export default function App() {
         {activeSection === 'privacy' && (
           <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="space-y-6">
             <div className="flex items-center gap-4 mb-2">
-              <button onClick={() => setActiveSection('settings')} className="p-2 rounded-full bg-white/5">
+              <button onClick={() => navigateTo('settings')} className="p-2 rounded-full bg-white/5">
                 <span className="material-icons-round">arrow_back</span>
               </button>
               <h2 className="font-headline font-extrabold text-2xl">Privacy Policy</h2>
@@ -690,7 +671,7 @@ export default function App() {
         {activeSection === 'terms' && (
           <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="space-y-6">
             <div className="flex items-center gap-4 mb-2">
-              <button onClick={() => setActiveSection('settings')} className="p-2 rounded-full bg-white/5">
+              <button onClick={() => navigateTo('settings')} className="p-2 rounded-full bg-white/5">
                 <span className="material-icons-round">arrow_back</span>
               </button>
               <h2 className="font-headline font-extrabold text-2xl">Terms & Conditions</h2>
@@ -750,6 +731,57 @@ export default function App() {
           </motion.div>
         )}
 
+        {/* Delete Data Section */}
+        {activeSection === 'delete-data' && (
+          <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="space-y-6">
+            <div className="flex items-center gap-4 mb-2">
+              <button onClick={() => navigateTo('settings')} className="p-2 rounded-full bg-white/5">
+                <span className="material-icons-round">arrow_back</span>
+              </button>
+              <h2 className="font-headline font-extrabold text-2xl text-red-500">Delete Data</h2>
+            </div>
+            <div className="backdrop-blur-xl bg-white dark:bg-[#1a1a1a] border border-gray-200 dark:border-white/10 rounded-[32px] p-8 space-y-8 shadow-sm transition-all duration-500">
+              <div className="space-y-4">
+                <h3 className="font-headline font-bold text-lg">Select Data to Delete</h3>
+                <p className="text-sm text-gray-600 dark:text-gray-400">Please select the types of data you would like to request deletion for:</p>
+                
+                <div className="space-y-3">
+                  {[
+                    { id: 'contactData', label: 'Contact Form Data' },
+                    { id: 'usageLogs', label: 'App Usage Logs' },
+                    { id: 'personalInfo', label: 'Personal Information' },
+                    { id: 'other', label: 'Other Data' }
+                  ].map((opt) => (
+                    <label key={opt.id} className="flex items-center gap-4 p-4 bg-gray-50 dark:bg-white/5 rounded-2xl cursor-pointer hover:bg-gray-100 dark:hover:bg-white/10 transition-all">
+                      <input 
+                        type="checkbox" 
+                        checked={deleteOptions[opt.id as keyof typeof deleteOptions]} 
+                        onChange={() => setDeleteOptions(prev => ({ ...prev, [opt.id]: !prev[opt.id as keyof typeof deleteOptions] }))}
+                        className="w-5 h-5 rounded border-gray-300 text-[#834fff] focus:ring-[#834fff]"
+                      />
+                      <span className="font-bold text-sm">{opt.label}</span>
+                    </label>
+                  ))}
+                </div>
+              </div>
+
+              <div className="bg-red-500/5 border border-red-500/10 rounded-2xl p-5">
+                <p className="text-xs text-red-500 leading-relaxed font-bold">
+                  Note: Clicking the button below will open your email app with a pre-filled request. Once sent, we will process your deletion within 7-10 business days.
+                </p>
+              </div>
+
+              <button 
+                onClick={sendDeleteRequest}
+                className="w-full bg-red-500 text-white font-bold py-5 rounded-2xl shadow-xl shadow-red-500/30 hover:bg-red-600 transition-all flex items-center justify-center gap-3 active:scale-95"
+              >
+                <span className="material-icons-round">send</span>
+                Send Deletion Request
+              </button>
+            </div>
+          </motion.div>
+        )}
+
       </main>
 
       {/* Floating Action Button */}
@@ -777,6 +809,52 @@ export default function App() {
           </button>
         ))}
       </nav>
+
+      {/* Delete Confirmation Modal */}
+      <AnimatePresence>
+        {showDeleteConfirm && (
+          <div className="fixed inset-0 z-[100] flex items-center justify-center p-6">
+            <motion.div 
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setShowDeleteConfirm(false)}
+              className="absolute inset-0 bg-black/60 backdrop-blur-sm"
+            />
+            <motion.div 
+              initial={{ scale: 0.9, opacity: 0, y: 20 }}
+              animate={{ scale: 1, opacity: 1, y: 0 }}
+              exit={{ scale: 0.9, opacity: 0, y: 20 }}
+              className="relative w-full max-w-sm bg-white dark:bg-[#1a1a1a] rounded-[32px] p-8 shadow-2xl border border-gray-200 dark:border-white/10"
+            >
+              <div className="w-16 h-16 bg-red-500/10 rounded-full flex items-center justify-center text-red-500 mx-auto mb-6">
+                <span className="material-icons-round text-3xl">warning</span>
+              </div>
+              <h3 className="font-headline font-extrabold text-xl text-center mb-4">Delete Data Request?</h3>
+              <p className="text-sm text-gray-600 dark:text-gray-400 text-center mb-8 leading-relaxed">
+                Are you sure you want to request data deletion? This will take you to our interactive request page.
+              </p>
+              <div className="flex flex-col gap-3">
+                <button 
+                  onClick={() => {
+                    setShowDeleteConfirm(false);
+                    navigateTo('delete-data');
+                  }}
+                  className="w-full bg-red-500 text-white font-bold py-4 rounded-2xl shadow-lg shadow-red-500/30 active:scale-95 transition-all"
+                >
+                  Yes, Continue
+                </button>
+                <button 
+                  onClick={() => setShowDeleteConfirm(false)}
+                  className="w-full bg-gray-100 dark:bg-white/5 text-gray-500 dark:text-gray-400 font-bold py-4 rounded-2xl active:scale-95 transition-all"
+                >
+                  Cancel
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
 
       <style>{`
         .font-headline { font-family: 'Manrope', sans-serif; }
