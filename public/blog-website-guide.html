@@ -1,0 +1,254 @@
+<!DOCTYPE html>
+<html lang="en" class="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>How to Build a Website - Sanjay Vaishya Assist</title>
+    <link rel="icon" href="https://indiacybercafe.com/wp-content/uploads/2026/03/sanjay_siteicon.png">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Manrope:wght@800&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons+Round" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#6c4cff',
+                    },
+                    fontFamily: {
+                        headline: ['Manrope', 'sans-serif'],
+                        sans: ['Inter', 'sans-serif'],
+                    },
+                }
+            }
+        }
+    </script>
+    <style>
+        body { font-family: 'Inter', sans-serif; background-color: #f8f9fa; color: #1a1a1a; scroll-behavior: smooth; }
+        .font-headline { font-family: 'Manrope', sans-serif; }
+        .code-block { background: #1e1e1e; color: #d4d4d4; padding: 1.5rem; border-radius: 1rem; font-family: monospace; font-size: 0.875rem; overflow-x: auto; position: relative; }
+        .copy-btn { position: absolute; top: 0.5rem; right: 0.5rem; background: rgba(255,255,255,0.1); color: white; padding: 0.25rem 0.5rem; border-radius: 0.5rem; font-size: 0.75rem; cursor: pointer; }
+        .copy-btn:hover { background: rgba(255,255,255,0.2); }
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-thumb { background: #6c4cff; border-radius: 10px; }
+    </style>
+</head>
+<body class="min-h-screen pb-24">
+    
+    <!-- Header Section -->
+    <header class="bg-white border-b border-gray-100 px-6 py-8 text-center shadow-sm">
+        <img src="https://indiacybercafe.com/wp-content/uploads/2026/03/sanjay_siteicon.png" alt="Logo" class="w-16 h-16 mx-auto mb-4 rounded-full border-2 border-primary shadow-lg" />
+        <h1 class="font-headline font-extrabold text-3xl text-primary tracking-tight">Sanjay Vaishya Assist</h1>
+        <p class="text-gray-500 font-bold uppercase tracking-widest text-[10px] mt-1">Digital Help & Learning</p>
+    </header>
+
+    <main class="px-6 py-10 max-w-2xl mx-auto space-y-10">
+        <div class="relative flex items-center justify-center min-h-[64px] mb-4 px-4">
+            <a href="/" class="absolute left-0 w-12 h-12 rounded-full bg-gray-100 flex items-center justify-center text-gray-500 active:scale-90 transition-all">
+                <span class="material-icons-round">arrow_back</span>
+            </a>
+            <h2 class="font-headline font-extrabold text-2xl text-primary">Website Guide</h2>
+        </div>
+        <article class="bg-white rounded-[32px] p-8 md:p-12 shadow-xl shadow-gray-200/50 border border-gray-50 space-y-8">
+            
+            <div class="space-y-4">
+                <h2 class="font-headline font-extrabold text-3xl leading-tight text-gray-900">
+                    🌐 How to Build a Website with HTML, CSS, and JS (Step-by-Step Guide)
+                </h2>
+                <div class="flex items-center gap-2 text-primary font-bold text-xs uppercase tracking-widest">
+                    <span class="material-icons-round text-sm">calendar_today</span>
+                    April 02, 2026
+                </div>
+            </div>
+
+            <img src="https://indiacybercafe.com/wp-content/uploads/2026/04/HTML_CSS_JS.jpeg" alt="HTML CSS JS Guide" class="w-full rounded-2xl shadow-lg" referrerPolicy="no-referrer" />
+
+            <!-- Intro Section -->
+            <div class="bg-primary/5 p-6 rounded-3xl border border-primary/10">
+                <p class="text-lg text-gray-700 leading-relaxed font-medium">
+                    📌 <strong>Introduction:</strong> If you want to build your own website, this guide is perfect for you. You don’t need any advanced knowledge. Just follow these simple steps and you can create your first website easily.
+                </p>
+            </div>
+
+            <!-- Steps Section -->
+            <div class="space-y-12">
+                
+                <!-- Step 1 -->
+                <section class="space-y-4">
+                    <h3 class="font-headline font-bold text-2xl flex items-center gap-3">
+                        <span class="material-icons-round text-primary">psychology</span>
+                        What is HTML, CSS, and JavaScript?
+                    </h3>
+                    <div class="grid gap-4">
+                        <div class="p-5 bg-gray-50 rounded-2xl border border-gray-100">
+                            <h4 class="font-bold text-primary mb-1">HTML (HyperText Markup Language)</h4>
+                            <p class="text-sm text-gray-600">It creates the structure of your website (like headings, text, buttons).</p>
+                        </div>
+                        <div class="p-5 bg-gray-50 rounded-2xl border border-gray-100">
+                            <h4 class="font-bold text-primary mb-1">CSS (Cascading Style Sheets)</h4>
+                            <p class="text-sm text-gray-600">It makes your website look beautiful (colors, layout, design).</p>
+                        </div>
+                        <div class="p-5 bg-gray-50 rounded-2xl border border-gray-100">
+                            <h4 class="font-bold text-primary mb-1">JavaScript (JS)</h4>
+                            <p class="text-sm text-gray-600">It adds functionality (button click, popup, actions).</p>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Step 2 -->
+                <section class="space-y-4">
+                    <h3 class="font-headline font-bold text-2xl flex items-center gap-3">
+                        <span class="w-10 h-10 rounded-full bg-primary text-white flex items-center justify-center text-lg">1</span>
+                        Step 1: Create Your Project Folder
+                    </h3>
+                    <p class="text-gray-600 leading-relaxed">
+                        Create a folder on your computer and name it: <strong>my-website</strong>. Inside this folder, create 3 files: <code>index.html</code>, <code>style.css</code>, and <code>script.js</code>.
+                    </p>
+                </section>
+
+                <!-- Step 3 -->
+                <section class="space-y-4">
+                    <h3 class="font-headline font-bold text-2xl flex items-center gap-3">
+                        <span class="w-10 h-10 rounded-full bg-primary text-white flex items-center justify-center text-lg">2</span>
+                        Step 2: Create HTML Structure
+                    </h3>
+                    <p class="text-gray-600 leading-relaxed">
+                        Open <code>index.html</code> and write your basic structure. Add a heading (H1), a paragraph, and a button. This will create the basic layout of your website.
+                    </p>
+                </section>
+
+                <!-- Step 4 -->
+                <section class="space-y-4">
+                    <h3 class="font-headline font-bold text-2xl flex items-center gap-3">
+                        <span class="w-10 h-10 rounded-full bg-primary text-white flex items-center justify-center text-lg">3</span>
+                        Step 3: Add CSS Styling
+                    </h3>
+                    <p class="text-gray-600 leading-relaxed">
+                        Open <code>style.css</code> and add styles like background color, font style, and style your button. This will make your website look clean and attractive.
+                    </p>
+                </section>
+
+                <!-- Step 5 -->
+                <section class="space-y-4">
+                    <h3 class="font-headline font-bold text-2xl flex items-center gap-3">
+                        <span class="w-10 h-10 rounded-full bg-primary text-white flex items-center justify-center text-lg">4</span>
+                        Step 4: Add JavaScript
+                    </h3>
+                    <p class="text-gray-600 leading-relaxed">
+                        Open <code>script.js</code> and add a simple function like showing a message on button click or an alert popup. This makes your website interactive.
+                    </p>
+                </section>
+
+                <!-- Step 6 -->
+                <section class="space-y-4">
+                    <h3 class="font-headline font-bold text-2xl flex items-center gap-3">
+                        <span class="w-10 h-10 rounded-full bg-primary text-white flex items-center justify-center text-lg">5</span>
+                        Step 5: Make Website Mobile Friendly
+                    </h3>
+                    <p class="text-gray-600 leading-relaxed">
+                        Make sure your website works on mobile by using proper spacing, avoiding large text overflow, and using responsive design. This improves user experience.
+                    </p>
+                </section>
+
+                <!-- Step 7 -->
+                <section class="space-y-4">
+                    <h3 class="font-headline font-bold text-2xl flex items-center gap-3">
+                        <span class="w-10 h-10 rounded-full bg-primary text-white flex items-center justify-center text-lg">6</span>
+                        Step 6: Publish Your Website
+                    </h3>
+                    <p class="text-gray-600 leading-relaxed">
+                        You can make your website live using free platforms like <strong>GitHub Pages</strong> or <strong>Netlify</strong>. Upload your files and your website will be online.
+                    </p>
+                </section>
+
+                <section class="grid md:grid-cols-2 gap-6">
+                    <div class="p-6 bg-green-50 rounded-3xl border border-green-100">
+                        <h4 class="font-headline font-bold text-lg text-green-600 mb-3 flex items-center gap-2">
+                            <span class="material-icons-round">lightbulb</span>
+                            💡 Quick Tips
+                        </h4>
+                        <ul class="text-sm text-green-700 space-y-2">
+                            <li>• Keep your design simple</li>
+                            <li>• Use clear text and colors</li>
+                            <li>• Always test your website</li>
+                            <li>• Save files correctly</li>
+                        </ul>
+                    </div>
+                    <div class="p-6 bg-amber-50 rounded-3xl border border-amber-100">
+                        <h4 class="font-headline font-bold text-lg text-amber-600 mb-3 flex items-center gap-2">
+                            <span class="material-icons-round">warning</span>
+                            ⚠️ Common Mistakes
+                        </h4>
+                        <ul class="text-sm text-amber-700 space-y-2">
+                            <li>• Not linking CSS or JS files</li>
+                            <li>• Wrong file names</li>
+                            <li>• Not checking mobile view</li>
+                            <li>• Using too much complex code</li>
+                        </ul>
+                    </div>
+                </section>
+
+            </div>
+
+            <!-- Help / Assist Section -->
+            <div class="bg-primary rounded-[24px] p-8 text-white space-y-6 shadow-2xl shadow-primary/30">
+                <div class="space-y-2">
+                    <h3 class="font-headline font-bold text-2xl">💬 Need Help?</h3>
+                    <p class="text-white/80 text-sm">If you are facing any problem, we are here to help you. You can contact us anytime for help.</p>
+                </div>
+                <div class="grid gap-3">
+                    <a href="https://wa.me/919203251821?text=I%20need%20help%20for%20making%20HTML%20CSS%20website" class="flex items-center justify-center gap-2 bg-white text-primary font-bold py-4 rounded-2xl active:scale-95 transition-all">
+                        <span class="material-icons-round">chat</span>
+                        💬 WhatsApp Support
+                    </a>
+                    <a href="mailto:sanjayvaishya.dev@gmail.com?subject=Help%20with%20HTML/CSS%20Website&body=Hello%20Sanjay,%20I%20need%20help%20for%20making%20HTML%20CSS%20website." class="flex items-center justify-center gap-2 bg-white/10 text-white border border-white/20 font-bold py-4 rounded-2xl active:scale-95 transition-all">
+                        <span class="material-icons-round">email</span>
+                        📧 Email Support
+                    </a>
+                    <a href="tel:+919203251821" class="flex items-center justify-center gap-2 bg-white/10 text-white border border-white/20 font-bold py-4 rounded-2xl active:scale-95 transition-all">
+                        <span class="material-icons-round">call</span>
+                        📞 Call Support
+                    </a>
+                    <a href="/" class="flex items-center justify-center gap-2 bg-white/10 text-white border border-white/20 font-bold py-4 rounded-2xl active:scale-95 transition-all">
+                        <span class="material-icons-round">help_outline</span>
+                        📧 Get Assist
+                    </a>
+                </div>
+            </div>
+
+            <!-- CTA Section -->
+            <div class="text-center pt-8 space-y-6">
+                <h3 class="font-headline font-bold text-xl">🚀 Conclusion</h3>
+                <p class="text-gray-500 text-sm">Building a website is easier than you think. Start step by step and keep practicing. Start today and create your first website!</p>
+                <a href="/" class="inline-flex items-center gap-3 bg-primary text-white font-bold px-10 py-5 rounded-2xl shadow-xl shadow-primary/30 hover:bg-[#5a3be0] transition-all active:scale-95">
+                    Start Today
+                    <span class="material-icons-round">arrow_forward</span>
+                </a>
+            </div>
+
+        </article>
+    </main>
+
+    <!-- Floating Button -->
+    <a href="https://wa.me/919203251821" class="fixed bottom-8 right-6 bg-green-500 text-white px-6 py-4 rounded-full shadow-2xl flex items-center gap-3 z-50 active:scale-95 transition-all">
+        <span class="material-icons-round">chat</span>
+        <span class="font-bold text-sm">Ask Assist</span>
+    </a>
+
+    <footer class="text-center text-gray-400 text-[10px] font-bold uppercase tracking-widest">
+        <p>&copy; 2026 Sanjay Vaishya. All rights reserved.</p>
+    </footer>
+
+    <script>
+        function copyCode(btn) {
+            const code = btn.nextElementSibling.innerText;
+            navigator.clipboard.writeText(code);
+            const originalText = btn.innerText;
+            btn.innerText = 'Copied!';
+            setTimeout(() => {
+                btn.innerText = originalText;
+            }, 2000);
+        }
+    </script>
+</body>
+</html>

@@ -50,7 +50,7 @@ export default function App() {
     window.addEventListener('popstate', handlePopState);
     
     // Set initial history state if not present
-    const navIds = ['home', 'help', 'gallery', 'updates', 'contact', 'settings', 'about', 'privacy', 'terms', 'delete-data'];
+    const navIds = ['home', 'help', 'gallery', 'updates', 'contact', 'settings', 'about', 'privacy', 'terms', 'delete-data', 'blog-guide'];
     const initialSection = window.location.hash.replace('#', '') || 'home';
     if (!window.history.state) {
       window.history.replaceState({ section: initialSection }, '', `#${initialSection}`);
@@ -375,6 +375,35 @@ export default function App() {
         {activeSection === 'updates' && (
           <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="space-y-6">
             <h2 className="font-headline font-extrabold text-2xl">Blog & Updates</h2>
+            
+            {/* New Blog Card */}
+            <div className="backdrop-blur-xl bg-white dark:bg-[#1a1a1a] border border-gray-200 dark:border-white/10 rounded-[32px] overflow-hidden shadow-sm transition-all duration-500">
+              <div className="h-48 relative overflow-hidden">
+                <img 
+                  src="https://indiacybercafe.com/wp-content/uploads/2026/04/HTML_CSS_JS.jpeg" 
+                  alt="HTML CSS JS Guide" 
+                  className="w-full h-full object-cover"
+                  referrerPolicy="no-referrer"
+                />
+                <div className="absolute bottom-4 left-6">
+                  <span className="px-3 py-1 bg-white/20 backdrop-blur-md rounded-full text-white text-[10px] font-bold uppercase tracking-widest">New Guide</span>
+                </div>
+              </div>
+              <div className="p-8 space-y-4">
+                <h3 className="font-headline font-extrabold text-xl leading-tight">How to Build a Website with HTML, CSS, and JS (Step-by-Step Guide)</h3>
+                <p className="text-sm text-gray-600 dark:text-gray-400 leading-relaxed">
+                  If you want to build your own website, this guide is for you. Learn how to create a website in a very simple way.
+                </p>
+                <button 
+                  onClick={() => navigateTo('blog-guide')}
+                  className="inline-flex items-center gap-2 text-[#834fff] font-bold hover:underline"
+                >
+                  Read All
+                  <span className="material-icons-round text-sm">arrow_forward</span>
+                </button>
+              </div>
+            </div>
+
             <div className="backdrop-blur-xl bg-white dark:bg-[#1a1a1a] border border-gray-200 dark:border-white/10 rounded-[32px] p-8 text-center shadow-sm transition-all duration-500">
               <div className="w-20 h-20 bg-[#834fff]/10 rounded-full flex items-center justify-center text-[#834fff] mx-auto mb-6">
                 <span className="material-icons-round text-4xl">rss_feed</span>
@@ -520,8 +549,11 @@ export default function App() {
         {/* About Section */}
         {activeSection === 'about' && (
           <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="space-y-6">
-            <div className="flex flex-col items-center text-center gap-3 mb-4">
-              <button onClick={() => navigateTo('settings')} className="w-12 h-12 rounded-full bg-gray-100 dark:bg-white/5 flex items-center justify-center text-gray-500 dark:text-gray-400 active:scale-90 transition-all">
+            <div className="relative flex items-center justify-center min-h-[64px] mb-4 px-4">
+              <button 
+                onClick={() => navigateTo('settings')} 
+                className="absolute left-0 w-12 h-12 rounded-full bg-gray-100 dark:bg-white/5 flex items-center justify-center text-gray-500 dark:text-gray-400 active:scale-90 transition-all"
+              >
                 <span className="material-icons-round">arrow_back</span>
               </button>
               <h2 className="font-headline font-extrabold text-2xl">About Sanjay Vaishya</h2>
@@ -595,8 +627,11 @@ export default function App() {
         {/* Privacy Policy Section */}
         {activeSection === 'privacy' && (
           <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="space-y-6">
-            <div className="flex flex-col items-center text-center gap-3 mb-4">
-              <button onClick={() => navigateTo('settings')} className="w-12 h-12 rounded-full bg-gray-100 dark:bg-white/5 flex items-center justify-center text-gray-500 dark:text-gray-400 active:scale-90 transition-all">
+            <div className="relative flex items-center justify-center min-h-[64px] mb-4 px-4">
+              <button 
+                onClick={() => navigateTo('settings')} 
+                className="absolute left-0 w-12 h-12 rounded-full bg-gray-100 dark:bg-white/5 flex items-center justify-center text-gray-500 dark:text-gray-400 active:scale-90 transition-all"
+              >
                 <span className="material-icons-round">arrow_back</span>
               </button>
               <h2 className="font-headline font-extrabold text-2xl">Privacy Policy</h2>
@@ -670,8 +705,11 @@ export default function App() {
         {/* Terms & Conditions Section */}
         {activeSection === 'terms' && (
           <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="space-y-6">
-            <div className="flex flex-col items-center text-center gap-3 mb-4">
-              <button onClick={() => navigateTo('settings')} className="w-12 h-12 rounded-full bg-gray-100 dark:bg-white/5 flex items-center justify-center text-gray-500 dark:text-gray-400 active:scale-90 transition-all">
+            <div className="relative flex items-center justify-center min-h-[64px] mb-4 px-4">
+              <button 
+                onClick={() => navigateTo('settings')} 
+                className="absolute left-0 w-12 h-12 rounded-full bg-gray-100 dark:bg-white/5 flex items-center justify-center text-gray-500 dark:text-gray-400 active:scale-90 transition-all"
+              >
                 <span className="material-icons-round">arrow_back</span>
               </button>
               <h2 className="font-headline font-extrabold text-2xl">Terms & Conditions</h2>
@@ -734,8 +772,11 @@ export default function App() {
         {/* Delete Data Section */}
         {activeSection === 'delete-data' && (
           <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="space-y-6">
-            <div className="flex flex-col items-center text-center gap-3 mb-4">
-              <button onClick={() => navigateTo('settings')} className="w-12 h-12 rounded-full bg-gray-100 dark:bg-white/5 flex items-center justify-center text-gray-500 dark:text-gray-400 active:scale-90 transition-all">
+            <div className="relative flex items-center justify-center min-h-[64px] mb-4 px-4">
+              <button 
+                onClick={() => navigateTo('settings')} 
+                className="absolute left-0 w-12 h-12 rounded-full bg-gray-100 dark:bg-white/5 flex items-center justify-center text-gray-500 dark:text-gray-400 active:scale-90 transition-all"
+              >
                 <span className="material-icons-round">arrow_back</span>
               </button>
               <h2 className="font-headline font-extrabold text-2xl text-red-500">Delete Data</h2>
@@ -778,6 +819,177 @@ export default function App() {
                 <span className="material-icons-round">send</span>
                 Send Deletion Request
               </button>
+            </div>
+          </motion.div>
+        )}
+
+        {/* Blog Guide Section */}
+        {activeSection === 'blog-guide' && (
+          <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="space-y-6">
+            <div className="relative flex items-center justify-center min-h-[64px] mb-4 px-4">
+              <button 
+                onClick={() => navigateTo('updates')} 
+                className="absolute left-0 w-12 h-12 rounded-full bg-gray-100 dark:bg-white/5 flex items-center justify-center text-gray-500 dark:text-gray-400 active:scale-90 transition-all"
+              >
+                <span className="material-icons-round">arrow_back</span>
+              </button>
+              <h2 className="font-headline font-extrabold text-2xl">Website Guide</h2>
+            </div>
+
+            <div className="backdrop-blur-xl bg-white dark:bg-[#1a1a1a] border border-gray-200 dark:border-white/10 rounded-[32px] p-8 md:p-12 space-y-8 shadow-sm transition-all duration-500">
+              <div className="space-y-4">
+                <h3 className="font-headline font-extrabold text-2xl leading-tight">
+                  🌐 How to Build a Website with HTML, CSS, and JS (Step-by-Step Guide)
+                </h3>
+                <div className="bg-[#834fff]/5 p-6 rounded-3xl border border-[#834fff]/10">
+                  <p className="text-lg text-gray-700 dark:text-gray-300 leading-relaxed font-medium">
+                    📌 <strong>Introduction:</strong> If you want to build your own website, this guide is perfect for you. You don’t need any advanced knowledge. Just follow these simple steps and you can create your first website easily.
+                  </p>
+                </div>
+              </div>
+
+              <div className="space-y-10">
+                <section className="space-y-4">
+                  <h4 className="font-headline font-bold text-xl flex items-center gap-3">
+                    <span className="material-icons-round text-[#834fff]">psychology</span>
+                    What is HTML, CSS, and JavaScript?
+                  </h4>
+                  <div className="grid gap-4">
+                    <div className="p-4 bg-gray-50 dark:bg-white/5 rounded-2xl border border-gray-100 dark:border-white/5">
+                      <p className="font-bold text-[#834fff] text-sm">HTML (HyperText Markup Language)</p>
+                      <p className="text-xs text-gray-600 dark:text-gray-400">It creates the structure of your website (like headings, text, buttons).</p>
+                    </div>
+                    <div className="p-4 bg-gray-50 dark:bg-white/5 rounded-2xl border border-gray-100 dark:border-white/5">
+                      <p className="font-bold text-[#834fff] text-sm">CSS (Cascading Style Sheets)</p>
+                      <p className="text-xs text-gray-600 dark:text-gray-400">It makes your website look beautiful (colors, layout, design).</p>
+                    </div>
+                    <div className="p-4 bg-gray-50 dark:bg-white/5 rounded-2xl border border-gray-100 dark:border-white/5">
+                      <p className="font-bold text-[#834fff] text-sm">JavaScript (JS)</p>
+                      <p className="text-xs text-gray-600 dark:text-gray-400">It adds functionality (button click, popup, actions).</p>
+                    </div>
+                  </div>
+                </section>
+
+                <section className="space-y-4">
+                  <h4 className="font-headline font-bold text-xl flex items-center gap-3">
+                    <span className="w-8 h-8 rounded-full bg-[#834fff] text-white flex items-center justify-center text-sm">1</span>
+                    Create Your Project Folder
+                  </h4>
+                  <p className="text-sm text-gray-600 dark:text-gray-400 leading-relaxed">
+                    Create a folder on your computer and name it: <strong>my-website</strong>. Inside this folder, create 3 files: <code>index.html</code>, <code>style.css</code>, and <code>script.js</code>.
+                  </p>
+                </section>
+
+                <section className="space-y-4">
+                  <h4 className="font-headline font-bold text-xl flex items-center gap-3">
+                    <span className="w-8 h-8 rounded-full bg-[#834fff] text-white flex items-center justify-center text-sm">2</span>
+                    Create HTML Structure
+                  </h4>
+                  <p className="text-sm text-gray-600 dark:text-gray-400 leading-relaxed">
+                    Open <code>index.html</code> and write your basic structure. Add a heading (H1), a paragraph, and a button. This will create the basic layout of your website.
+                  </p>
+                </section>
+
+                <section className="space-y-4">
+                  <h4 className="font-headline font-bold text-xl flex items-center gap-3">
+                    <span className="w-8 h-8 rounded-full bg-[#834fff] text-white flex items-center justify-center text-sm">3</span>
+                    Add CSS Styling
+                  </h4>
+                  <p className="text-sm text-gray-600 dark:text-gray-400 leading-relaxed">
+                    Open <code>style.css</code> and add styles like background color, font style, and button styling. This will make your website look clean and attractive.
+                  </p>
+                </section>
+
+                <section className="space-y-4">
+                  <h4 className="font-headline font-bold text-xl flex items-center gap-3">
+                    <span className="w-8 h-8 rounded-full bg-[#834fff] text-white flex items-center justify-center text-sm">4</span>
+                    Add JavaScript
+                  </h4>
+                  <p className="text-sm text-gray-600 dark:text-gray-400 leading-relaxed">
+                    Open <code>script.js</code> and add a simple function like showing a message on button click or an alert popup. This makes your website interactive.
+                  </p>
+                </section>
+
+                <section className="space-y-4">
+                  <h4 className="font-headline font-bold text-xl flex items-center gap-3">
+                    <span className="w-8 h-8 rounded-full bg-[#834fff] text-white flex items-center justify-center text-sm">5</span>
+                    Make Website Mobile Friendly
+                  </h4>
+                  <p className="text-sm text-gray-600 dark:text-gray-400 leading-relaxed">
+                    Ensure your website works on mobile by using proper spacing, avoiding large text overflow, and using responsive design.
+                  </p>
+                </section>
+
+                <section className="space-y-4">
+                  <h4 className="font-headline font-bold text-xl flex items-center gap-3">
+                    <span className="w-8 h-8 rounded-full bg-[#834fff] text-white flex items-center justify-center text-sm">6</span>
+                    Publish Your Website
+                  </h4>
+                  <p className="text-sm text-gray-600 dark:text-gray-400 leading-relaxed">
+                    You can make your website live using free platforms like <strong>GitHub Pages</strong> or <strong>Netlify</strong>. Upload your files and your website will be online.
+                  </p>
+                </section>
+
+                <section className="grid md:grid-cols-2 gap-6">
+                  <div className="p-6 bg-green-50 dark:bg-green-500/10 rounded-3xl border border-green-100 dark:border-green-500/20">
+                    <h4 className="font-headline font-bold text-lg text-green-600 dark:text-green-400 mb-3 flex items-center gap-2">
+                      <span className="material-icons-round">lightbulb</span>
+                      Quick Tips
+                    </h4>
+                    <ul className="text-xs text-green-700 dark:text-green-300 space-y-2">
+                      <li>• Keep your design simple</li>
+                      <li>• Use clear text and colors</li>
+                      <li>• Always test your website</li>
+                      <li>• Save files correctly</li>
+                    </ul>
+                  </div>
+                  <div className="p-6 bg-amber-50 dark:bg-amber-500/10 rounded-3xl border border-amber-100 dark:border-amber-500/20">
+                    <h4 className="font-headline font-bold text-lg text-amber-600 dark:text-amber-400 mb-3 flex items-center gap-2">
+                      <span className="material-icons-round">warning</span>
+                      Common Mistakes
+                    </h4>
+                    <ul className="text-xs text-amber-700 dark:text-amber-300 space-y-2">
+                      <li>• Not linking CSS or JS files</li>
+                      <li>• Wrong file names</li>
+                      <li>• Not checking mobile view</li>
+                      <li>• Using too much complex code</li>
+                    </ul>
+                  </div>
+                </section>
+
+                <div className="bg-[#834fff] rounded-[24px] p-8 text-white space-y-6 shadow-xl shadow-[#834fff]/30">
+                  <div className="space-y-2">
+                    <h3 className="font-headline font-bold text-xl">💬 Need Help?</h3>
+                    <p className="text-white/80 text-xs">If you are facing any problem, we are here to help you. You can contact us anytime.</p>
+                  </div>
+                  <div className="grid gap-3">
+                    <a href="https://wa.me/919203251821?text=I%20need%20help%20for%20making%20HTML%20CSS%20website" className="flex items-center justify-center gap-2 bg-white text-[#834fff] font-bold py-4 rounded-2xl active:scale-95 transition-all text-sm">
+                      <span className="material-icons-round text-lg">chat</span>
+                      WhatsApp Support
+                    </a>
+                    <a href="mailto:sanjayvaishya.dev@gmail.com?subject=Help%20with%20HTML/CSS%20Website&body=Hello%20Sanjay,%20I%20need%20help%20for%20making%20HTML%20CSS%20website." className="flex items-center justify-center gap-2 bg-white/10 text-white border border-white/20 font-bold py-4 rounded-2xl active:scale-95 transition-all text-sm">
+                      <span className="material-icons-round text-lg">email</span>
+                      Email Support
+                    </a>
+                    <a href="tel:+919203251821" className="flex items-center justify-center gap-2 bg-white/10 text-white border border-white/20 font-bold py-4 rounded-2xl active:scale-95 transition-all text-sm">
+                      <span className="material-icons-round text-lg">call</span>
+                      Call Support
+                    </a>
+                  </div>
+                </div>
+
+                <div className="text-center space-y-4 pt-4">
+                  <p className="text-lg font-headline font-bold text-gray-800 dark:text-gray-200">🚀 Conclusion</p>
+                  <p className="text-sm text-gray-500 dark:text-gray-400">Building a website is easier than you think. Start step by step and keep practicing. Start today and create your first website!</p>
+                  <button 
+                    onClick={() => window.open('/blog-website-guide.html', '_blank')}
+                    className="inline-flex items-center gap-2 text-[#834fff] font-bold hover:underline mt-4"
+                  >
+                    Open Full Guide in New Tab
+                    <span className="material-icons-round text-sm">open_in_new</span>
+                  </button>
+                </div>
+              </div>
             </div>
           </motion.div>
         )}
