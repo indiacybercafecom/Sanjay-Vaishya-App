@@ -376,7 +376,35 @@ export default function App() {
           <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="space-y-6">
             <h2 className="font-headline font-extrabold text-2xl">Blog & Updates</h2>
             
-            {/* New Blog Card */}
+            {/* New Blog Card: Hostinger Deployment */}
+            <div className="backdrop-blur-xl bg-white dark:bg-[#1a1a1a] border border-gray-200 dark:border-white/10 rounded-[32px] overflow-hidden shadow-sm transition-all duration-500">
+              <div className="h-48 relative overflow-hidden">
+                <img 
+                  src="https://indiacybercafe.com/wp-content/uploads/2026/04/Deploy_Website_HTML_202604031034.jpeg" 
+                  alt="Hostinger Deployment Guide" 
+                  className="w-full h-full object-cover"
+                  referrerPolicy="no-referrer"
+                />
+                <div className="absolute bottom-4 left-6">
+                  <span className="px-3 py-1 bg-white/20 backdrop-blur-md rounded-full text-white text-[10px] font-bold uppercase tracking-widest">New Guide</span>
+                </div>
+              </div>
+              <div className="p-8 space-y-4">
+                <h3 className="font-headline font-extrabold text-xl leading-tight">🌐 How to Deploy a Website on Hostinger (Step-by-Step Guide)</h3>
+                <p className="text-sm text-gray-600 dark:text-gray-400 leading-relaxed">
+                  Learn how to make your website live on the internet using Hostinger. A complete beginner-friendly guide for HTML, CSS, JS, and PHP.
+                </p>
+                <button 
+                  onClick={() => navigateTo('deploy-guide')}
+                  className="inline-flex items-center gap-2 text-[#834fff] font-bold hover:underline"
+                >
+                  Read All
+                  <span className="material-icons-round text-sm">arrow_forward</span>
+                </button>
+              </div>
+            </div>
+
+            {/* New Blog Card: HTML CSS JS Guide */}
             <div className="backdrop-blur-xl bg-white dark:bg-[#1a1a1a] border border-gray-200 dark:border-white/10 rounded-[32px] overflow-hidden shadow-sm transition-all duration-500">
               <div className="h-48 relative overflow-hidden">
                 <img 
@@ -819,6 +847,186 @@ export default function App() {
                 <span className="material-icons-round">send</span>
                 Send Deletion Request
               </button>
+            </div>
+          </motion.div>
+        )}
+
+        {/* Deploy Guide Section */}
+        {activeSection === 'deploy-guide' && (
+          <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="space-y-6">
+            <div className="relative flex items-center justify-center min-h-[64px] mb-4 px-4">
+              <button 
+                onClick={() => navigateTo('updates')} 
+                className="absolute left-0 w-12 h-12 rounded-full bg-gray-100 dark:bg-white/5 flex items-center justify-center text-gray-500 dark:text-gray-400 active:scale-90 transition-all"
+              >
+                <span className="material-icons-round">arrow_back</span>
+              </button>
+              <h2 className="font-headline font-extrabold text-2xl">Deployment Guide</h2>
+            </div>
+
+            <div className="backdrop-blur-xl bg-white dark:bg-[#1a1a1a] border border-gray-200 dark:border-white/10 rounded-[32px] p-8 md:p-12 space-y-8 shadow-sm transition-all duration-500">
+              <div className="space-y-4">
+                <h3 className="font-headline font-extrabold text-2xl leading-tight">
+                  🌐 How to Deploy a Website on Hostinger (Step-by-Step Guide)
+                </h3>
+                <div className="bg-[#834fff]/5 p-6 rounded-3xl border border-[#834fff]/10">
+                  <p className="text-lg text-gray-700 dark:text-gray-300 leading-relaxed font-medium">
+                    📌 <strong>Introduction:</strong> Website deployment means making your website live on the internet so everyone can see it. Hostinger is a great platform for this because it is fast, affordable, and very easy to use for beginners.
+                  </p>
+                </div>
+              </div>
+
+              <div className="space-y-10">
+                <section className="space-y-4">
+                  <h4 className="font-headline font-bold text-xl flex items-center gap-3">
+                    <span className="material-icons-round text-[#834fff]">psychology</span>
+                    🧠 What You Need:
+                  </h4>
+                  <div className="grid gap-4">
+                    <div className="p-4 bg-gray-50 dark:bg-white/5 rounded-2xl border border-gray-100 dark:border-white/5 flex items-center gap-3">
+                      <span className="material-icons-round text-[#834fff]">language</span>
+                      <p className="text-xs text-gray-600 dark:text-gray-400">Domain name (e.g., yourname.com)</p>
+                    </div>
+                    <div className="p-4 bg-gray-50 dark:bg-white/5 rounded-2xl border border-gray-100 dark:border-white/5 flex items-center gap-3">
+                      <span className="material-icons-round text-[#834fff]">cloud_queue</span>
+                      <p className="text-xs text-gray-600 dark:text-gray-400">Hostinger hosting account</p>
+                    </div>
+                    <div className="p-4 bg-gray-50 dark:bg-white/5 rounded-2xl border border-gray-100 dark:border-white/5 flex items-center gap-3">
+                      <span className="material-icons-round text-[#834fff]">folder_zip</span>
+                      <p className="text-xs text-gray-600 dark:text-gray-400">Website files (HTML, CSS, JS, PHP)</p>
+                    </div>
+                  </div>
+                </section>
+
+                <section className="space-y-4">
+                  <h4 className="font-headline font-bold text-xl flex items-center gap-3">
+                    <span className="w-8 h-8 rounded-full bg-[#834fff] text-white flex items-center justify-center text-sm">1</span>
+                    1️⃣ Login to Hostinger
+                  </h4>
+                  <p className="text-sm text-gray-600 dark:text-gray-400 leading-relaxed">
+                    Go to the official Hostinger website and click on the login button. Enter your email and password to access your hosting dashboard.
+                  </p>
+                </section>
+
+                <section className="space-y-4">
+                  <h4 className="font-headline font-bold text-xl flex items-center gap-3">
+                    <span className="w-8 h-8 rounded-full bg-[#834fff] text-white flex items-center justify-center text-sm">2</span>
+                    2️⃣ Open hPanel / File Manager
+                  </h4>
+                  <p className="text-sm text-gray-600 dark:text-gray-400 leading-relaxed">
+                    Once logged in, find your hosting plan and click "Manage". Look for the <strong>File Manager</strong> icon. Inside the File Manager, open the <strong>public_html</strong> folder. This is where all your website files must go.
+                  </p>
+                </section>
+
+                <section className="space-y-4">
+                  <h4 className="font-headline font-bold text-xl flex items-center gap-3">
+                    <span className="w-8 h-8 rounded-full bg-[#834fff] text-white flex items-center justify-center text-sm">3</span>
+                    3️⃣ Upload Website Files
+                  </h4>
+                  <p className="text-sm text-gray-600 dark:text-gray-400 leading-relaxed">
+                    Click the upload button and select your HTML, CSS, and JS files. If you have PHP files, upload them too. If your files are in a ZIP folder, upload the ZIP and then use the "Extract" option inside Hostinger.
+                  </p>
+                </section>
+
+                <section className="space-y-4">
+                  <h4 className="font-headline font-bold text-xl flex items-center gap-3">
+                    <span className="w-8 h-8 rounded-full bg-[#834fff] text-white flex items-center justify-center text-sm">4</span>
+                    4️⃣ Set Main File
+                  </h4>
+                  <p className="text-sm text-gray-600 dark:text-gray-400 leading-relaxed">
+                    Make sure your main homepage file is named <strong>index.html</strong> or <strong>index.php</strong>. This is the first file Hostinger looks for when someone visits your domain.
+                  </p>
+                </section>
+
+                <section className="space-y-4">
+                  <h4 className="font-headline font-bold text-xl flex items-center gap-3">
+                    <span className="w-8 h-8 rounded-full bg-[#834fff] text-white flex items-center justify-center text-sm">5</span>
+                    5️⃣ Check PHP Support
+                  </h4>
+                  <p className="text-sm text-gray-600 dark:text-gray-400 leading-relaxed">
+                    Hostinger supports PHP by default on all their hosting plans. You don't need any extra setup to run your PHP scripts. Just upload and they will work!
+                  </p>
+                </section>
+
+                <section className="space-y-4">
+                  <h4 className="font-headline font-bold text-xl flex items-center gap-3">
+                    <span className="w-8 h-8 rounded-full bg-[#834fff] text-white flex items-center justify-center text-sm">6</span>
+                    6️⃣ Connect Domain
+                  </h4>
+                  <p className="text-sm text-gray-600 dark:text-gray-400 leading-relaxed">
+                    Ensure your domain is correctly linked to your Hostinger account. If you bought the domain elsewhere, you may need to wait for DNS propagation (usually takes a few hours).
+                  </p>
+                </section>
+
+                <section className="space-y-4">
+                  <h4 className="font-headline font-bold text-xl flex items-center gap-3">
+                    <span className="w-8 h-8 rounded-full bg-[#834fff] text-white flex items-center justify-center text-sm">7</span>
+                    7️⃣ Open Your Website
+                  </h4>
+                  <p className="text-sm text-gray-600 dark:text-gray-400 leading-relaxed">
+                    Now, open a new tab in your browser and enter your domain name. If everything was done correctly, your website should be live and visible to the world!
+                  </p>
+                </section>
+
+                <section className="grid md:grid-cols-2 gap-6">
+                  <div className="p-6 bg-green-50 dark:bg-green-500/10 rounded-3xl border border-green-100 dark:border-green-500/20">
+                    <h4 className="font-headline font-bold text-lg text-green-600 dark:text-green-400 mb-3 flex items-center gap-2">
+                      <span className="material-icons-round">lightbulb</span>
+                      💡 Quick Tips
+                    </h4>
+                    <ul className="text-xs text-green-700 dark:text-green-300 space-y-2">
+                      <li>• Use correct file names (lowercase)</li>
+                      <li>• Keep all files inside public_html</li>
+                      <li>• Test your website locally before uploading</li>
+                    </ul>
+                  </div>
+                  <div className="p-6 bg-amber-50 dark:bg-amber-500/10 rounded-3xl border border-amber-100 dark:border-amber-500/20">
+                    <h4 className="font-headline font-bold text-lg text-amber-600 dark:text-amber-400 mb-3 flex items-center gap-2">
+                      <span className="material-icons-round">warning</span>
+                      ⚠️ Common Mistakes
+                    </h4>
+                    <ul className="text-xs text-amber-700 dark:text-amber-300 space-y-2">
+                      <li>• <strong>Not loading:</strong> Check if index file exists.</li>
+                      <li>• <strong>CSS/JS broken:</strong> Check file paths.</li>
+                      <li>• <strong>Wrong path:</strong> Files must be in public_html.</li>
+                      <li>• <strong>Missing file:</strong> Ensure all assets are uploaded.</li>
+                    </ul>
+                  </div>
+                </section>
+
+                <div className="bg-[#834fff] rounded-[24px] p-8 text-white space-y-6 shadow-xl shadow-[#834fff]/30">
+                  <div className="space-y-2">
+                    <h3 className="font-headline font-bold text-xl">💬 Need Help?</h3>
+                    <p className="text-white/80 text-xs">If you are facing any problem, we are here to help you. You can contact us anytime.</p>
+                  </div>
+                  <div className="grid gap-3">
+                    <a href="https://wa.me/919203251821?text=I%20need%20help%20for%20deploying%20website%20on%20Hostinger" className="flex items-center justify-center gap-2 bg-white text-[#834fff] font-bold py-4 rounded-2xl active:scale-95 transition-all text-sm">
+                      <span className="material-icons-round text-lg">chat</span>
+                      WhatsApp Support
+                    </a>
+                    <a href="mailto:sanjayvaishya.dev@gmail.com?subject=Help%20with%20Hostinger%20Deployment&body=Hello%20Sanjay,%20I%20need%20help%20for%20deploying%20my%20website%20on%20Hostinger." className="flex items-center justify-center gap-2 bg-white/10 text-white border border-white/20 font-bold py-4 rounded-2xl active:scale-95 transition-all text-sm">
+                      <span className="material-icons-round text-lg">email</span>
+                      Email Support
+                    </a>
+                    <a href="tel:+919203251821" className="flex items-center justify-center gap-2 bg-white/10 text-white border border-white/20 font-bold py-4 rounded-2xl active:scale-95 transition-all text-sm">
+                      <span className="material-icons-round text-lg">call</span>
+                      Call Support
+                    </a>
+                  </div>
+                </div>
+
+                <div className="text-center space-y-4 pt-4">
+                  <p className="text-lg font-headline font-bold text-gray-800 dark:text-gray-200">🚀 Conclusion</p>
+                  <p className="text-sm text-gray-500 dark:text-gray-400">Deploying a website is a big step! Don't worry if you make mistakes, just keep trying. You've got this!</p>
+                  <button 
+                    onClick={() => window.open('/deploy-hostinger-guide.html', '_blank')}
+                    className="inline-flex items-center gap-2 text-[#834fff] font-bold hover:underline mt-4"
+                  >
+                    Open Full Guide in New Tab
+                    <span className="material-icons-round text-sm">open_in_new</span>
+                  </button>
+                </div>
+              </div>
             </div>
           </motion.div>
         )}
