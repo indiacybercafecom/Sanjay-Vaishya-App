@@ -19,6 +19,8 @@ export default function App() {
   });
   const [galleryImages, setGalleryImages] = useState<{src: string, title: string, desc: string, tag: string}[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [selectedCategory, setSelectedCategory] = useState('All');
   const nameRef = React.useRef<HTMLInputElement>(null);
   const queryRef = React.useRef<HTMLTextAreaElement>(null);
 
@@ -142,6 +144,50 @@ export default function App() {
     }
   };
 
+  const handleImageShare = async (image: { src: string, title: string, desc: string }) => {
+    if (navigator.share) {
+      try {
+        await navigator.share({
+          title: image.title,
+          text: image.desc,
+          url: image.src
+        });
+      } catch (err) {
+        console.log('Image share failed:', err);
+      }
+    } else {
+      try {
+        await navigator.clipboard.writeText(image.src);
+        // Using a custom log instead of alert as per guidelines
+        console.log('Image link copied to clipboard');
+      } catch (err) {
+        console.log('Failed to copy image link:', err);
+      }
+    }
+  };
+
+  const handlePostShare = async (post: any) => {
+    const shareUrl = `${window.location.origin}/#${post.id}`;
+    if (navigator.share) {
+      try {
+        await navigator.share({
+          title: post.title,
+          text: post.desc,
+          url: shareUrl
+        });
+      } catch (err) {
+        console.log('Post share failed:', err);
+      }
+    } else {
+      try {
+        await navigator.clipboard.writeText(shareUrl);
+        console.log('Post link copied to clipboard');
+      } catch (err) {
+        console.log('Failed to copy post link:', err);
+      }
+    }
+  };
+
   const sendDeleteRequest = () => {
     const selected = Object.entries(deleteOptions)
       .filter(([_, val]) => val)
@@ -165,6 +211,34 @@ export default function App() {
     { id: 'updates', icon: 'notifications', label: 'Updates' },
     { id: 'contact', icon: 'mail', label: 'Contact' },
   ];
+
+  const blogPosts = [
+    {
+      id: 'deploy-guide',
+      title: '🌐 How to Deploy a Website on Hostinger (Step-by-Step Guide)',
+      desc: 'Learn how to make your website live on the internet using Hostinger. A complete beginner-friendly guide for HTML, CSS, JS, and PHP.',
+      image: 'https://indiacybercafe.com/wp-content/uploads/2026/04/Deploy_Website_HTML_202604031034.jpeg',
+      category: 'Guides',
+      tag: 'New Guide'
+    },
+    {
+      id: 'blog-guide',
+      title: 'How to Build a Website with HTML, CSS, and JS (Step-by-Step Guide)',
+      desc: 'If you want to build your own website, this guide is for you. Learn how to create a website in a very simple way.',
+      image: 'https://indiacybercafe.com/wp-content/uploads/2026/04/HTML_CSS_JS.jpeg',
+      category: 'Guides',
+      tag: 'New Guide'
+    }
+  ];
+
+  const filteredPosts = blogPosts.filter(post => {
+    const matchesSearch = post.title.toLowerCase().includes(searchQuery.toLowerCase()) || 
+                         post.desc.toLowerCase().includes(searchQuery.toLowerCase());
+    const matchesCategory = selectedCategory === 'All' || post.category === selectedCategory;
+    return matchesSearch && matchesCategory;
+  });
+
+  const categories = ['All', 'Guides', 'News', 'Tips'];
 
   return (
     <div className="min-h-screen bg-white dark:bg-[#0e0e0e] text-gray-900 dark:text-white font-sans transition-colors duration-500">
@@ -350,8 +424,17 @@ export default function App() {
                     <div className="p-6 space-y-4">
                       <h3 className="font-headline font-extrabold text-xl leading-tight">{item.title}</h3>
                       <p className="text-sm text-gray-600 dark:text-gray-400 leading-relaxed">{item.desc}</p>
-                      <div className="inline-block px-4 py-2 bg-[#834fff]/10 rounded-full">
-                        <span className="text-[#834fff] text-xs font-bold">{item.tag}</span>
+                      <div className="flex items-center justify-between pt-2">
+                        <div className="inline-block px-4 py-2 bg-[#834fff]/10 rounded-full">
+                          <span className="text-[#834fff] text-xs font-bold">{item.tag}</span>
+                        </div>
+                        <button 
+                          onClick={() => handleImageShare(item)}
+                          className="w-10 h-10 rounded-full bg-gray-100 dark:bg-white/5 flex items-center justify-center text-[#834fff] active:scale-90 transition-all hover:bg-[#834fff]/10"
+                          title="Share Image"
+                        >
+                          <span className="material-icons-round text-xl">share</span>
+                        </button>
                       </div>
                     </div>
                   </motion.div>
@@ -374,63 +457,97 @@ export default function App() {
         {/* Updates Section */}
         {activeSection === 'updates' && (
           <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="space-y-6">
-            <h2 className="font-headline font-extrabold text-2xl">Blog & Updates</h2>
+            <div className="flex flex-col gap-4">
+              <h2 className="font-headline font-extrabold text-2xl">Blog & Updates</h2>
+              
+              {/* Search and Filter UI */}
+              <div className="space-y-4">
+                <div className="relative">
+                  <span className="material-icons-round absolute left-4 top-1/2 -translate-y-1/2 text-gray-400">search</span>
+                  <input 
+                    type="text" 
+                    placeholder="Search posts..." 
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    className="w-full pl-12 pr-4 py-4 bg-white dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-2xl focus:ring-2 focus:ring-[#834fff] outline-none transition-all"
+                  />
+                </div>
+                
+                <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
+                  {categories.map(cat => (
+                    <button
+                      key={cat}
+                      onClick={() => setSelectedCategory(cat)}
+                      className={`px-6 py-2 rounded-full text-xs font-bold whitespace-nowrap transition-all ${
+                        selectedCategory === cat 
+                        ? 'bg-[#834fff] text-white shadow-lg shadow-[#834fff]/30' 
+                        : 'bg-white dark:bg-white/5 text-gray-500 border border-gray-200 dark:border-white/10'
+                      }`}
+                    >
+                      {cat}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </div>
             
-            {/* New Blog Card: Hostinger Deployment */}
-            <div className="backdrop-blur-xl bg-white dark:bg-[#1a1a1a] border border-gray-200 dark:border-white/10 rounded-[32px] overflow-hidden shadow-sm transition-all duration-500">
-              <div className="h-48 relative overflow-hidden">
-                <img 
-                  src="https://indiacybercafe.com/wp-content/uploads/2026/04/Deploy_Website_HTML_202604031034.jpeg" 
-                  alt="Hostinger Deployment Guide" 
-                  className="w-full h-full object-cover"
-                  referrerPolicy="no-referrer"
-                />
-                <div className="absolute bottom-4 left-6">
-                  <span className="px-3 py-1 bg-white/20 backdrop-blur-md rounded-full text-white text-[10px] font-bold uppercase tracking-widest">New Guide</span>
-                </div>
-              </div>
-              <div className="p-8 space-y-4">
-                <h3 className="font-headline font-extrabold text-xl leading-tight">🌐 How to Deploy a Website on Hostinger (Step-by-Step Guide)</h3>
-                <p className="text-sm text-gray-600 dark:text-gray-400 leading-relaxed">
-                  Learn how to make your website live on the internet using Hostinger. A complete beginner-friendly guide for HTML, CSS, JS, and PHP.
-                </p>
-                <button 
-                  onClick={() => navigateTo('deploy-guide')}
-                  className="inline-flex items-center gap-2 text-[#834fff] font-bold hover:underline"
+            <AnimatePresence mode="popLayout">
+              {filteredPosts.length > 0 ? (
+                filteredPosts.map((post) => (
+                  <motion.div 
+                    key={post.id}
+                    layout
+                    initial={{ opacity: 0, scale: 0.9 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    exit={{ opacity: 0, scale: 0.9 }}
+                    className="backdrop-blur-xl bg-white dark:bg-[#1a1a1a] border border-gray-200 dark:border-white/10 rounded-[32px] overflow-hidden shadow-sm transition-all duration-500"
+                  >
+                    <div className="h-48 relative overflow-hidden">
+                      <img 
+                        src={post.image} 
+                        alt={post.title} 
+                        className="w-full h-full object-cover"
+                        referrerPolicy="no-referrer"
+                      />
+                      <div className="absolute bottom-4 left-6">
+                        <span className="px-3 py-1 bg-white/20 backdrop-blur-md rounded-full text-white text-[10px] font-bold uppercase tracking-widest">{post.tag}</span>
+                      </div>
+                    </div>
+                    <div className="p-8 space-y-4">
+                      <h3 className="font-headline font-extrabold text-xl leading-tight">{post.title}</h3>
+                      <p className="text-sm text-gray-600 dark:text-gray-400 leading-relaxed">
+                        {post.desc}
+                      </p>
+                      <div className="flex items-center justify-between pt-2">
+                        <button 
+                          onClick={() => navigateTo(post.id as any)}
+                          className="inline-flex items-center gap-2 text-[#834fff] font-bold hover:underline"
+                        >
+                          Read All
+                          <span className="material-icons-round text-sm">arrow_forward</span>
+                        </button>
+                        <button 
+                          onClick={() => handlePostShare(post)}
+                          className="w-10 h-10 rounded-full bg-gray-100 dark:bg-white/5 flex items-center justify-center text-[#834fff] active:scale-90 transition-all hover:bg-[#834fff]/10"
+                          title="Share Post"
+                        >
+                          <span className="material-icons-round text-xl">share</span>
+                        </button>
+                      </div>
+                    </div>
+                  </motion.div>
+                ))
+              ) : (
+                <motion.div 
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  className="text-center py-12"
                 >
-                  Read All
-                  <span className="material-icons-round text-sm">arrow_forward</span>
-                </button>
-              </div>
-            </div>
-
-            {/* New Blog Card: HTML CSS JS Guide */}
-            <div className="backdrop-blur-xl bg-white dark:bg-[#1a1a1a] border border-gray-200 dark:border-white/10 rounded-[32px] overflow-hidden shadow-sm transition-all duration-500">
-              <div className="h-48 relative overflow-hidden">
-                <img 
-                  src="https://indiacybercafe.com/wp-content/uploads/2026/04/HTML_CSS_JS.jpeg" 
-                  alt="HTML CSS JS Guide" 
-                  className="w-full h-full object-cover"
-                  referrerPolicy="no-referrer"
-                />
-                <div className="absolute bottom-4 left-6">
-                  <span className="px-3 py-1 bg-white/20 backdrop-blur-md rounded-full text-white text-[10px] font-bold uppercase tracking-widest">New Guide</span>
-                </div>
-              </div>
-              <div className="p-8 space-y-4">
-                <h3 className="font-headline font-extrabold text-xl leading-tight">How to Build a Website with HTML, CSS, and JS (Step-by-Step Guide)</h3>
-                <p className="text-sm text-gray-600 dark:text-gray-400 leading-relaxed">
-                  If you want to build your own website, this guide is for you. Learn how to create a website in a very simple way.
-                </p>
-                <button 
-                  onClick={() => navigateTo('blog-guide')}
-                  className="inline-flex items-center gap-2 text-[#834fff] font-bold hover:underline"
-                >
-                  Read All
-                  <span className="material-icons-round text-sm">arrow_forward</span>
-                </button>
-              </div>
-            </div>
+                  <span className="material-icons-round text-4xl text-gray-300 mb-4">search_off</span>
+                  <p className="text-gray-500">No posts found matching your search.</p>
+                </motion.div>
+              )}
+            </AnimatePresence>
 
             <div className="backdrop-blur-xl bg-white dark:bg-[#1a1a1a] border border-gray-200 dark:border-white/10 rounded-[32px] p-8 text-center shadow-sm transition-all duration-500">
               <div className="w-20 h-20 bg-[#834fff]/10 rounded-full flex items-center justify-center text-[#834fff] mx-auto mb-6">
@@ -441,7 +558,7 @@ export default function App() {
                 Stay updated with the latest news, tech trends, and community support stories from Sanjay Vaishya.
               </p>
               <a 
-                href="https://sanjay.indiacybercafe.com/updates" 
+                href="https://sanjay.indiacybercafe.com/updates.html" 
                 target="_blank" 
                 className="inline-flex items-center gap-3 bg-[#834fff] text-white font-bold px-8 py-4 rounded-2xl shadow-xl shadow-[#834fff]/30 hover:bg-[#6d23f9] transition-all active:scale-95"
               >
