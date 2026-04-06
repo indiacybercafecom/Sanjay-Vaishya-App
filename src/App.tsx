@@ -5,6 +5,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
+import CookieConsent from './components/CookieConsent';
 
 export default function App() {
   const [activeSection, setActiveSection] = useState('home');
@@ -1392,6 +1393,8 @@ export default function App() {
           </div>
         )}
       </AnimatePresence>
+
+      <CookieConsent />
 
       <style>{`
         .font-headline { font-family: 'Manrope', sans-serif; }
