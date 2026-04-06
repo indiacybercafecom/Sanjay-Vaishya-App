@@ -681,6 +681,7 @@ export default function App() {
               <div className="pt-10 text-center space-y-4">
                 <div className="flex justify-center gap-6">
                   <button onClick={() => navigateTo('privacy')} className="text-[10px] uppercase tracking-widest text-gray-500 font-bold hover:text-[#834fff]">Privacy Policy</button>
+                  <button onClick={() => navigateTo('cookie-policy')} className="text-[10px] uppercase tracking-widest text-gray-500 font-bold hover:text-[#834fff]">Cookie Policy</button>
                   <button onClick={() => navigateTo('terms')} className="text-[10px] uppercase tracking-widest text-gray-500 font-bold hover:text-[#834fff]">Terms & Conditions</button>
                 </div>
                 <div className="pt-4">
@@ -765,6 +766,82 @@ export default function App() {
                 <p className="text-[9px] text-gray-400 uppercase tracking-widest font-bold text-center">
                   Keywords: developer app, cyber cafe services, digital services India, Sanjay Vaishya, India Cyber Cafe
                 </p>
+              </div>
+            </div>
+          </motion.div>
+        )}
+
+        {/* Cookie Policy Section */}
+        {activeSection === 'cookie-policy' && (
+          <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="space-y-6">
+            <div className="relative flex items-center justify-center min-h-[64px] mb-4 px-4">
+              <button 
+                onClick={() => navigateTo('settings')} 
+                className="absolute left-0 w-12 h-12 rounded-full bg-gray-100 dark:bg-white/5 flex items-center justify-center text-gray-500 dark:text-gray-400 active:scale-90 transition-all"
+              >
+                <span className="material-icons-round">arrow_back</span>
+              </button>
+              <h2 className="font-headline font-extrabold text-2xl">Cookie Policy</h2>
+            </div>
+            <div className="backdrop-blur-xl bg-white dark:bg-[#1a1a1a] border border-gray-200 dark:border-white/10 rounded-[32px] p-8 space-y-6 shadow-sm transition-all duration-500">
+              <p className="text-[10px] font-bold text-[#834fff] uppercase tracking-widest">Last Updated: April 06, 2026</p>
+              
+              <div className="prose prose-sm dark:prose-invert max-w-none space-y-6">
+                <section>
+                  <h3 className="text-lg font-bold">1. What are Cookies?</h3>
+                  <p className="text-sm text-gray-600 dark:text-gray-400 leading-relaxed">
+                    Cookies are small text files that are stored on your device (computer or mobile) when you visit a website or use an app. They are widely used to make websites work, or work more efficiently, as well as to provide information to the owners of the site.
+                  </p>
+                </section>
+
+                <section>
+                  <h3 className="text-lg font-bold">2. How We Use Cookies</h3>
+                  <p className="text-sm text-gray-600 dark:text-gray-400 leading-relaxed">
+                    The Sanjay Vaishya App uses cookies for the following purposes:
+                  </p>
+                  <ul className="text-sm text-gray-600 dark:text-gray-400 space-y-2 mt-2">
+                    <li>• <strong>Essential Cookies:</strong> Necessary for the app to function properly, such as remembering your theme preference (Dark/Light mode).</li>
+                    <li>• <strong>Analytics Cookies:</strong> Help us understand how users interact with the app by collecting and reporting information anonymously (e.g., via Google Analytics).</li>
+                    <li>• <strong>Functional Cookies:</strong> Remember choices you make (like your cookie consent preference) to provide a more personalized experience.</li>
+                  </ul>
+                </section>
+
+                <section>
+                  <h3 className="text-lg font-bold">3. Third-Party Cookies</h3>
+                  <p className="text-sm text-gray-600 dark:text-gray-400 leading-relaxed">
+                    In some cases, we use cookies provided by trusted third parties. For example, we use Google Analytics to help us understand how you use the app and ways that we can improve your experience. These cookies may track things such as how long you spend on the app and the pages that you visit.
+                  </p>
+                </section>
+
+                <section>
+                  <h3 className="text-lg font-bold">4. Managing Cookies</h3>
+                  <p className="text-sm text-gray-600 dark:text-gray-400 leading-relaxed">
+                    You can control and/or delete cookies as you wish. You can delete all cookies that are already on your device and you can set most browsers to prevent them from being placed. However, if you do this, you may have to manually adjust some preferences every time you visit the app and some services and functionalities may not work.
+                  </p>
+                  <p className="text-sm text-gray-600 dark:text-gray-400 leading-relaxed mt-2">
+                    You can also manage your consent through the banner that appears when you first visit the app.
+                  </p>
+                </section>
+
+                <section>
+                  <h3 className="text-lg font-bold">5. Compliance & Policy</h3>
+                  <p className="text-sm text-gray-600 dark:text-gray-400 leading-relaxed">
+                    This policy is designed to comply with global privacy standards, including:
+                  </p>
+                  <ul className="text-sm text-gray-600 dark:text-gray-400 space-y-2 mt-2">
+                    <li>• <strong>GDPR (EU):</strong> Ensuring transparency and user consent for data processing.</li>
+                    <li>• <strong>Google Play Console Policy:</strong> Meeting the requirements for clear disclosure of data collection practices.</li>
+                    <li>• <strong>Indian IT Act:</strong> Adhering to the Information Technology (Reasonable Security Practices and Procedures and Sensitive Personal Data or Information) Rules.</li>
+                  </ul>
+                </section>
+
+                <section>
+                  <h3 className="text-lg font-bold">6. Contact Us</h3>
+                  <p className="text-sm text-gray-600 dark:text-gray-400 leading-relaxed">
+                    If you have any questions about our use of cookies, please contact us at:<br />
+                    Email: sanjayvaishya.dev@gmail.com
+                  </p>
+                </section>
               </div>
             </div>
           </motion.div>
@@ -1394,7 +1471,7 @@ export default function App() {
         )}
       </AnimatePresence>
 
-      <CookieConsent />
+      <CookieConsent onViewPolicy={() => navigateTo('cookie-policy')} />
 
       <style>{`
         .font-headline { font-family: 'Manrope', sans-serif; }

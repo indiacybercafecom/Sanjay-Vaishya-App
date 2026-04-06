@@ -1,7 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 
-export default function CookieConsent() {
+interface CookieConsentProps {
+  onViewPolicy: () => void;
+}
+
+export default function CookieConsent({ onViewPolicy }: CookieConsentProps) {
   const [isVisible, setIsVisible] = useState(false);
 
   useEffect(() => {
@@ -40,7 +44,7 @@ export default function CookieConsent() {
                 <div>
                   <h4 className="font-headline font-bold text-lg mb-1">Cookie Consent</h4>
                   <p className="text-sm text-gray-600 dark:text-gray-400 max-w-2xl">
-                    We use cookies to enhance your browsing experience, serve personalized content, and analyze our traffic. By clicking "Accept All", you consent to our use of cookies.
+                    We use cookies to enhance your browsing experience, serve personalized content, and analyze our traffic. By clicking "Accept All", you consent to our use of cookies. <button onClick={onViewPolicy} className="text-[#834fff] font-bold hover:underline">Read Policy</button>
                   </p>
                 </div>
               </div>
