@@ -128,6 +128,21 @@ export default function App() {
     }, 800);
   };
 
+  const handleEmailSubmit = () => {
+    if (!nameRef.current || !queryRef.current) return;
+    const name = nameRef.current.value;
+    const query = queryRef.current.value;
+    
+    if (!name || !query) {
+      alert('Please fill in both your name and query.');
+      return;
+    }
+
+    const subject = encodeURIComponent(`Assistance Request from ${name}`);
+    const body = encodeURIComponent(`Hello Sanjay,\n\nI need assistance.\n\nName: ${name}\nQuery: ${query}`);
+    window.location.href = `mailto:sanjayvaishya.dev@gmail.com?subject=${subject}&body=${body}`;
+  };
+
   const handleShare = async () => {
     if (navigator.share) {
       try {
@@ -377,7 +392,7 @@ export default function App() {
           <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="space-y-6">
             <h2 className="font-headline font-extrabold text-2xl">Free Assistance</h2>
             <div className="backdrop-blur-xl bg-white dark:bg-[#1a1a1a] border border-gray-200 dark:border-white/10 rounded-[24px] p-8 shadow-sm transition-all duration-500">
-              <p className="text-sm text-gray-600 dark:text-gray-400 mb-8 leading-relaxed">Fill out the form below and I will get back to you on WhatsApp as soon as possible.</p>
+              <p className="text-sm text-gray-600 dark:text-gray-400 mb-8 leading-relaxed">Fill out the form below and choose your preferred contact method. I will get back to you as soon as possible via WhatsApp or Email.</p>
               <form onSubmit={handleHelpSubmit} className="space-y-6">
                 <div className="space-y-2">
                   <label className="block text-xs font-bold uppercase text-gray-500 tracking-widest ml-1">Your Name</label>
@@ -387,16 +402,22 @@ export default function App() {
                   <label className="block text-xs font-bold uppercase text-gray-500 tracking-widest ml-1">Your Query</label>
                   <textarea ref={queryRef} required rows={4} className="w-full bg-gray-100 dark:bg-white/10 border-none rounded-2xl px-5 py-4 focus:ring-2 focus:ring-[#834fff] transition-all resize-none" placeholder="How can I help you?"></textarea>
                 </div>
-                <button type="submit" disabled={isSubmitting} className="w-full bg-[#834fff] text-white font-bold py-5 rounded-2xl shadow-xl shadow-[#834fff]/30 hover:bg-[#6d23f9] transition-all flex items-center justify-center gap-3 active:scale-95 disabled:opacity-70 disabled:cursor-not-allowed">
-                  {isSubmitting ? (
-                    <div className="w-6 h-6 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
-                  ) : (
-                    <>
-                      <span className="material-icons-round">send</span>
-                      Submit to WhatsApp
-                    </>
-                  )}
-                </button>
+                <div className="flex flex-col gap-3 pt-2">
+                  <button type="button" onClick={handleEmailSubmit} className="w-full bg-white dark:bg-white/5 border border-gray-200 dark:border-white/10 text-gray-800 dark:text-white font-bold py-5 rounded-2xl shadow-sm hover:border-[#834fff] transition-all flex items-center justify-center gap-3 active:scale-95">
+                    <span className="material-icons-round text-[#834fff]">email</span>
+                    Send Mail
+                  </button>
+                  <button type="submit" disabled={isSubmitting} className="w-full bg-[#834fff] text-white font-bold py-5 rounded-2xl shadow-xl shadow-[#834fff]/30 hover:bg-[#6d23f9] transition-all flex items-center justify-center gap-3 active:scale-95 disabled:opacity-70 disabled:cursor-not-allowed">
+                    {isSubmitting ? (
+                      <div className="w-6 h-6 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+                    ) : (
+                      <>
+                        <span className="material-icons-round">send</span>
+                        Submit to WhatsApp
+                      </>
+                    )}
+                  </button>
+                </div>
               </form>
             </div>
           </motion.div>
