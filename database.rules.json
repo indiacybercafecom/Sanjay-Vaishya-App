@@ -19,9 +19,6 @@
           },
           "company": {
             ".validate": "newData.isString() && newData.val().length <= 120"
-          },
-          "emailVerified": {
-            ".validate": "newData.isBoolean()"
           }
         },
         "role": {

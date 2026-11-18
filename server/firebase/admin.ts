@@ -44,7 +44,6 @@ export interface FirebaseUserRecordRTDB {
     email?: string;
     phone?: string;
     company?: string;
-    emailVerified?: boolean;
   };
   role?: string;
   status?: string;

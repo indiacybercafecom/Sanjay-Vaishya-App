@@ -1,5 +1,14 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { ArrowRight, ShieldAlert, Star, MailCheck, FolderKanban, Inbox } from 'lucide-react';
+import {
+  ArrowRight,
+  ShieldAlert,
+  Star,
+  FolderKanban,
+  Inbox,
+  MessageSquare,
+  FileText,
+  CreditCard,
+} from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import { apiFetch } from '../../lib/api';
 import { EmptyState } from '../../components/common/EmptyState';
@@ -98,21 +107,28 @@ export function ClientDashboardFeature({ onNavigate, onSelectProject }: ClientDa
         </div>
       </div>
 
-      {!user.emailVerified && (
-        <div className="p-4 rounded-lg bg-[#1A1E28] border border-[#00BFFF]/40 flex flex-wrap items-center justify-between gap-3 text-xs">
-          <span className="text-[#CCCCCC] flex items-center gap-2">
-            <MailCheck className="w-4 h-4 text-[#00BFFF] shrink-0" />
-            <span>Your email verification is pending. Verify via Firebase email link.</span>
-          </span>
-          <button
-            type="button"
-            onClick={() => onNavigate('/verify-email')}
-            className="min-h-[36px] text-[#00BFFF] font-semibold hover:underline"
-          >
-            Manage Verification
-          </button>
-        </div>
-      )}
+      {/* Quick Workspace Actions */}
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
+        {[
+          { label: 'Projects', path: '/projects', icon: FolderKanban },
+          { label: 'Messages', path: '/messages', icon: MessageSquare },
+          { label: 'Proposals', path: '/proposals', icon: FileText },
+          { label: 'Payments', path: '/payments', icon: CreditCard },
+        ].map((action) => {
+          const Icon = action.icon;
+          return (
+            <button
+              key={action.path}
+              type="button"
+              onClick={() => onNavigate(action.path)}
+              className="min-h-[44px] px-3.5 py-2.5 rounded-lg bg-[#13161D] border border-[#262B38] hover:border-[#00BFFF] text-left flex items-center gap-2.5 text-xs font-medium text-white transition-colors"
+            >
+              <Icon className="w-4 h-4 text-[#00BFFF] shrink-0" />
+              <span className="truncate">{action.label}</span>
+            </button>
+          );
+        })}
+      </div>
 
       {/* KPI Metrics */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">

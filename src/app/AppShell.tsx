@@ -48,7 +48,7 @@ export function AppShell({
           />
         )}
 
-        <main className="flex-1 min-w-0 px-3 sm:px-6 py-5 sm:py-8 pb-24 md:pb-10">
+        <main className="flex-1 min-w-0 px-3 sm:px-6 py-4 sm:py-7 pb-[calc(5.25rem+env(safe-area-inset-bottom,0px))] md:pb-10">
           {children}
         </main>
       </div>

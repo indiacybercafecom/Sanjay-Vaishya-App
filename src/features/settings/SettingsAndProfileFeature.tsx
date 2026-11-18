@@ -8,14 +8,13 @@ import {
   Trash2,
   ArrowRight,
   LogOut,
-  MailCheck,
 } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import { apiFetch } from '../../lib/api';
 import { updateProfileInRtdb } from '../../firebase/database';
 import { PWAInstallButton } from '../../components/PWAInstallButton';
 
-export function ProfileFeature({ onNavigate }: { onNavigate: (path: string) => void }) {
+export function ProfileFeature() {
   const { user, firebaseUser, refreshAuth, showToast } = useAuth();
   const [profileForm, setProfileForm] = useState({
     name: user?.name || '',
@@ -71,22 +70,6 @@ export function ProfileFeature({ onNavigate }: { onNavigate: (path: string) => v
           <span className="text-[#CCCCCC] break-all">{user.email}</span>
           <span className="font-mono text-[#00BFFF] uppercase">{user.roles.join(', ')}</span>
         </div>
-
-        {!user.emailVerified && (
-          <div className="p-3 rounded-lg bg-[#0B0D11] border border-[#00BFFF]/40 flex flex-wrap items-center justify-between gap-2 text-xs">
-            <span className="text-[#CCCCCC] flex items-center gap-2">
-              <MailCheck className="w-4 h-4 text-[#00BFFF]" />
-              Email verification pending
-            </span>
-            <button
-              type="button"
-              onClick={() => onNavigate('/verify-email')}
-              className="text-[#00BFFF] font-semibold hover:underline"
-            >
-              Verify Email
-            </button>
-          </div>
-        )}
 
         <label className="space-y-1.5 block">
           <span className="text-xs font-medium text-[#CCCCCC]">Full Name</span>

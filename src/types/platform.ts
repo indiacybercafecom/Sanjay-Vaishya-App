@@ -7,7 +7,6 @@ export interface AuthUser {
   email: string;
   phone: string;
   company: string;
-  emailVerified: boolean;
   isActive: boolean;
   status?: 'active' | 'disabled';
   roles: UserRole[];
@@ -21,7 +20,6 @@ export interface AdminUserRow {
   email: string;
   phone: string;
   company: string;
-  email_verified: number;
   is_active: number;
   created_at: string;
   roles_csv: string;

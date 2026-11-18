@@ -43,7 +43,7 @@ export default function CookieConsent({ onViewPolicy, forceOpen = false, onClose
           animate={{ y: 0, opacity: 1 }}
           exit={{ y: 24, opacity: 0 }}
           transition={{ duration: 0.2, ease: 'easeOut' }}
-          className="fixed bottom-0 left-0 right-0 z-[200] p-3 md:p-5 pointer-events-none"
+          className="fixed bottom-[62px] md:bottom-0 left-0 right-0 z-[200] p-3 md:p-5 pointer-events-none"
         >
           <div className="max-w-[1280px] mx-auto pointer-events-auto">
             <div className="bg-[#13161D]/95 backdrop-blur-md border border-[#2B3140] rounded-lg px-4 py-3.5 md:px-6 md:py-4 shadow-[0_8px_32px_rgba(0,0,0,0.6)] flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">

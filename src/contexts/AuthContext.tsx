@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useEffect, useCallback, useRef } from 'react';
-import { onAuthStateChanged, onIdTokenChanged, type User as FirebaseUser } from 'firebase/auth';
+import { onIdTokenChanged, type User as FirebaseUser } from 'firebase/auth';
 import { firebaseAuth } from '../firebase/config';
 import { logoutFromFirebase } from '../firebase/auth';
 import { subscribeToUserNode } from '../firebase/database';
@@ -62,7 +62,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [notifications, setNotifications] = useState<NotificationRecord[]>([]);
   const [toast, setToast] = useState<ToastState | null>(null);
   const [wsSocket, setWsSocket] = useState<WebSocket | null>(null);
+
   const wsRef = useRef<WebSocket | null>(null);
+  const inFlightSyncRef = useRef<Promise<AuthUser | null> | null>(null);
+  const lastSyncedTokenRef = useRef<string | null>(null);
+  const lastRtdbSignatureRef = useRef<string | null>(null);
 
   const showToast = useCallback((message: string, type: 'info' | 'error' = 'info') => {
     setToast({ message, type });
@@ -107,48 +111,79 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const syncBackendSession = useCallback(
     async (fbUser: FirebaseUser | null, forceTokenRefresh = false): Promise<AuthUser | null> => {
       if (!fbUser) {
+        lastSyncedTokenRef.current = null;
+        lastRtdbSignatureRef.current = null;
         setUser(null);
         setAuthLoading(false);
         return null;
       }
 
-      try {
-        const idToken = await fbUser.getIdToken(forceTokenRefresh);
-        const res = await fetch('/api/auth/session', {
-          method: 'POST',
-          credentials: 'include',
-          headers: {
-            'Content-Type': 'application/json',
-            Authorization: `Bearer ${idToken}`,
-          },
-          body: JSON.stringify({ name: fbUser.displayName || '' }),
-        });
-
-        const payload = (await res.json()) as { authenticated?: boolean; user?: AuthUser | null; error?: string };
-
-        if (res.status === 403) {
-          setAccountDisabledError(payload.error || 'This account has been disabled.');
-          await logoutFromFirebase();
-          setUser(null);
-          return null;
-        }
-
-        if (!res.ok || !payload.user) {
-          setUser(null);
-          return null;
-        }
-
-        setAccountDisabledError(null);
-        setUser(payload.user);
-        return payload.user;
-      } catch {
-        setUser(null);
-        return null;
-      } finally {
-        setAuthLoading(false);
+      // Deduplicate concurrent sync calls unless forcing a fresh role/token sync
+      if (inFlightSyncRef.current && !forceTokenRefresh) {
+        return inFlightSyncRef.current;
       }
+
+      const runSync = async (): Promise<AuthUser | null> => {
+        try {
+          const idToken = await fbUser.getIdToken(forceTokenRefresh);
+          if (!forceTokenRefresh && lastSyncedTokenRef.current === idToken && user?.firebaseUid === fbUser.uid) {
+            return user;
+          }
+
+          const res = await fetch('/api/auth/session', {
+            method: 'POST',
+            credentials: 'include',
+            headers: {
+              'Content-Type': 'application/json',
+              Authorization: `Bearer ${idToken}`,
+            },
+            body: JSON.stringify({ name: fbUser.displayName || '' }),
+          });
+
+          const payload = (await res.json().catch(() => ({}))) as {
+            authenticated?: boolean;
+            user?: AuthUser | null;
+            error?: string;
+          };
+
+          if (res.status === 403) {
+            lastSyncedTokenRef.current = null;
+            setAccountDisabledError(payload.error || 'This account has been disabled.');
+            await logoutFromFirebase();
+            setUser(null);
+            return null;
+          }
+
+          if (!res.ok || !payload.user) {
+            lastSyncedTokenRef.current = null;
+            setUser(null);
+            if (forceTokenRefresh) {
+              throw new Error(payload.error || 'Unable to synchronize session with backend server.');
+            }
+            return null;
+          }
+
+          lastSyncedTokenRef.current = idToken;
+          setAccountDisabledError(null);
+          setUser(payload.user);
+          return payload.user;
+        } catch (err) {
+          if (forceTokenRefresh) {
+            throw err instanceof Error ? err : new Error('Session synchronization failed.');
+          }
+          setUser(null);
+          return null;
+        } finally {
+          inFlightSyncRef.current = null;
+          setAuthLoading(false);
+        }
+      };
+
+      const promise = runSync();
+      inFlightSyncRef.current = promise;
+      return promise;
     },
-    []
+    [user]
   );
 
   const refreshAuth = useCallback(
@@ -162,13 +197,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     refreshPublicData();
   }, [refreshPublicData]);
 
-  // Listen to Firebase Auth state & ID token updates
+  // Single auth/token listener prevents duplicate initial sync race conditions
   useEffect(() => {
     let mounted = true;
-    const unsubAuth = onAuthStateChanged(firebaseAuth, async (fbUser) => {
+    const unsubToken = onIdTokenChanged(firebaseAuth, async (fbUser) => {
       if (!mounted) return;
       setFirebaseUser(fbUser);
       if (!fbUser) {
+        lastSyncedTokenRef.current = null;
+        lastRtdbSignatureRef.current = null;
         setUser(null);
         setNotifications([]);
         setAuthLoading(false);
@@ -177,35 +214,41 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       await syncBackendSession(fbUser, false);
     });
 
-    const unsubToken = onIdTokenChanged(firebaseAuth, async (fbUser) => {
-      if (!mounted || !fbUser) return;
-      await syncBackendSession(fbUser, false);
-    });
-
     return () => {
       mounted = false;
-      unsubAuth();
       unsubToken();
     };
   }, [syncBackendSession]);
 
-  // Subscribe to Realtime Database users/{uid} so role/status updates reflect immediately
+  // Subscribe to Realtime Database users/{uid} so role/status changes by admin sync immediately
   useEffect(() => {
     if (!firebaseUser) return;
-    let firstSnapshot = true;
 
     const unsub = subscribeToUserNode(firebaseUser.uid, async (node) => {
-      if (firstSnapshot) {
-        firstSnapshot = false;
-        return;
-      }
-      if (node?.status === 'disabled') {
+      if (!node) return;
+
+      if (node.status === 'disabled') {
         setAccountDisabledError('Your account has been disabled by an administrator.');
         await logoutFromFirebase();
         setUser(null);
         return;
       }
-      await syncBackendSession(firebaseUser, true);
+
+      const sig = `${node.role}:${node.status}:${node.profile?.name || ''}:${node.profile?.phone || ''}:${
+        node.profile?.company || ''
+      }`;
+      if (lastRtdbSignatureRef.current === null) {
+        lastRtdbSignatureRef.current = sig;
+        return;
+      }
+      if (lastRtdbSignatureRef.current !== sig) {
+        lastRtdbSignatureRef.current = sig;
+        try {
+          await syncBackendSession(firebaseUser, true);
+        } catch {
+          // Non-fatal background refresh error
+        }
+      }
     });
 
     return () => unsub();
@@ -273,6 +316,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     } catch {
       // Ignore network errors during logout cookie clear
     }
+    lastSyncedTokenRef.current = null;
+    lastRtdbSignatureRef.current = null;
     await logoutFromFirebase();
     setUser(null);
     setFirebaseUser(null);

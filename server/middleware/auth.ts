@@ -20,7 +20,6 @@ export interface AuthUser {
   email: string;
   phone: string;
   company: string;
-  emailVerified: boolean;
   isActive: boolean;
   status: AccountStatus;
   roles: UserRole[];
@@ -63,7 +62,7 @@ export function resolveHighestRole(roles: UserRole[]): UserRole {
 export function loadUserById(userId: number): AuthUser | null {
   const userRow = db
     .prepare(`
-      SELECT id, firebase_uid, name, email, phone, company, email_verified, is_active
+      SELECT id, firebase_uid, name, email, phone, company, is_active
       FROM users WHERE id = ?
     `)
     .get(userId) as
@@ -74,7 +73,6 @@ export function loadUserById(userId: number): AuthUser | null {
         email: string;
         phone: string;
         company: string;
-        email_verified: number;
         is_active: number;
       }
     | undefined;
@@ -91,7 +89,6 @@ export function loadUserById(userId: number): AuthUser | null {
     email: userRow.email,
     phone: userRow.phone || '',
     company: userRow.company || '',
-    emailVerified: Boolean(userRow.email_verified),
     isActive: Boolean(userRow.is_active),
     status: userRow.is_active ? 'active' : 'disabled',
     roles,
@@ -123,7 +120,6 @@ export async function authenticateFirebaseIdToken(
     'Client User';
   const phone = sanitizeText(rtdbUser?.profile?.phone, 40);
   const company = sanitizeText(rtdbUser?.profile?.company, 120);
-  const emailVerified = Boolean(decoded.email_verified);
 
   // Sync verified Firebase user into local relational SQLite index for business records
   let existing = db
@@ -141,9 +137,9 @@ export async function authenticateFirebaseIdToken(
     const ins = db
       .prepare(`
         INSERT INTO users (firebase_uid, name, email, phone, company, password_hash, email_verified, is_active)
-        VALUES (?, ?, ?, ?, ?, '', ?, ?)
+        VALUES (?, ?, ?, ?, ?, '', 0, ?)
       `)
-      .run(uid, displayName, email, phone, company, emailVerified ? 1 : 0, isActive ? 1 : 0);
+      .run(uid, displayName, email, phone, company, isActive ? 1 : 0);
     userId = Number(ins.lastInsertRowid);
   } else {
     userId = existing.id;
@@ -154,11 +150,10 @@ export async function authenticateFirebaseIdToken(
           email = ?,
           phone = COALESCE(NULLIF(?, ''), phone),
           company = COALESCE(NULLIF(?, ''), company),
-          email_verified = ?,
           is_active = ?,
           updated_at = datetime('now')
       WHERE id = ?
-    `).run(uid, displayName, email, phone, company, emailVerified ? 1 : 0, isActive ? 1 : 0, userId);
+    `).run(uid, displayName, email, phone, company, isActive ? 1 : 0, userId);
   }
 
   // Always enforce authoritative Firebase role in SQLite user_roles
@@ -189,7 +184,6 @@ export async function authenticateFirebaseIdToken(
         email,
         phone,
         company,
-        emailVerified,
         isActive: false,
         status: 'disabled',
         roles: [resolvedRole],

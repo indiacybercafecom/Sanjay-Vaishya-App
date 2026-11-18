@@ -256,7 +256,6 @@ export function AppRouter() {
     // Auth Routes
     if (currentPath === '/login') return <AuthScreens mode="login" onNavigate={navigate} />;
     if (currentPath === '/register') return <AuthScreens mode="register" onNavigate={navigate} />;
-    if (currentPath === '/verify-email') return <AuthScreens mode="verify-email" onNavigate={navigate} />;
     if (currentPath === '/reset-password') return <AuthScreens mode="reset-password" onNavigate={navigate} />;
     if (currentPath === '/forgot-password') return <AuthScreens mode="forgot-password" onNavigate={navigate} />;
 
@@ -295,7 +294,7 @@ export function AppRouter() {
       return <NotificationsFeature onNavigate={navigate} />;
     }
     if (currentPath === '/profile') {
-      return <ProfileFeature onNavigate={navigate} />;
+      return <ProfileFeature />;
     }
     if (currentPath === '/settings') {
       return (

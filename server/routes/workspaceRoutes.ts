@@ -1442,7 +1442,7 @@ workspaceRouter.post('/workspace/reviews', requireAuth, (req: AuthenticatedReque
 // ---------- ADMIN MANAGEMENT ROUTES ----------
 workspaceRouter.get('/admin/users', requireRole('admin', 'project_manager'), (_req, res) => {
   const users = db.prepare(`
-    SELECT u.id, u.firebase_uid, u.name, u.email, u.phone, u.company, u.email_verified, u.is_active, u.created_at,
+    SELECT u.id, u.firebase_uid, u.name, u.email, u.phone, u.company, u.is_active, u.created_at,
            GROUP_CONCAT(ur.role) as roles_csv
     FROM users u
     LEFT JOIN user_roles ur ON ur.user_id = u.id

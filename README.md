@@ -6,7 +6,7 @@ An independent, founder-led full-stack software development team platform and pr
 - **Frontend**: React 19, TypeScript, Tailwind CSS v4, Lucide Icons, Progressive Web App (`vite-plugin-pwa`).
 - **Mobile-First App Shell**: Role-aware mobile bottom navigation bar, safe-area padding, bottom sheets, and persistent desktop workspace sidebar.
 - **Authentication & Authorization**:
-  - Firebase Authentication (`Email/Password`, Email Verification, Password Reset).
+  - Firebase Authentication (`Email/Password` sign-up with immediate automatic sign-in, `Password Reset`). Note: email link verification is not required, so users should register with an accurate email address to receive password recovery links.
   - Firebase Realtime Database (`users/{uid}/profile`, `users/{uid}/role`, `users/{uid}/status`, `users/{uid}/createdAt`).
   - Node.js Express backend (`server.ts`) verifying Firebase ID tokens on every authenticated API & WebSocket upgrade via `firebase-admin`.
   - Authoritative role & active-status resolution on the server; new registrations always receive `role = "client"` and `status = "active"`.
