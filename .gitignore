@@ -2,7 +2,14 @@ node_modules/
 build/
 dist/
 coverage/
+storage/
+*.db
+*.db-shm
+*.db-wal
+*.sqlite
 .DS_Store
 *.log
 .env*
 !.env.example
+serviceAccountKey.json
+firebase-adminsdk*.json

@@ -1,95 +1,44 @@
-# 📱 Sanjay Vaishya App
-> **Empowering Digital Literacy & Providing Free Digital Assistance**
+# SANJAY VAISHYA — Full-Stack Development & Project Management Platform
 
-[![Developer](https://img.shields.io/badge/Developer-Sanjay%20Vaishya-blueviolet?style=for-the-badge)](https://sanjay.indiacybercafe.com)
-[![License](https://img.shields.io/badge/License-MIT-green?style=for-the-badge)](LICENSE)
-[![Status](https://img.shields.io/badge/Status-Active-success?style=for-the-badge)]()
+An independent, founder-led full-stack software development team platform and project management workspace led by **Sanjay Vaishya (Founder & Lead Full-Stack Developer)**.
 
----
-
-## 📝 About the App
-The **Sanjay Vaishya App** is a modern, mobile-first web application designed to bridge the digital divide. Developed by **Sanjay Vaishya**, a dedicated Cyber Cafe Owner and Developer from Jobgarh, Singrauli, this platform serves as a central hub for individuals seeking **FREE digital assistance**. 
-
-Whether it's navigating complex online forms, understanding college admission processes, or seeking basic developer guidance, this app provides a direct line of support to those who need it most.
-
----
-
-## ✨ Key Features
-*   🚀 **Free Digital Support:** Direct assistance for cyber cafe related queries and online services.
-*   📱 **Mobile-First UI:** A premium, app-like experience with smooth glassmorphism design.
-*   💬 **Instant WhatsApp Integration:** One-click connectivity for real-time support.
-*   🌓 **Smart Dark/Light Mode:** Fully responsive theme switching for comfortable viewing.
-*   📢 **Live Updates:** Stay informed with the latest digital news and cafe updates.
-*   🖼️ **Visual Gallery:** Showcase of digital collections and community work.
+## Architecture Highlights
+- **Frontend**: React 19, TypeScript, Tailwind CSS v4, Lucide Icons, Progressive Web App (`vite-plugin-pwa`).
+- **Mobile-First App Shell**: Role-aware mobile bottom navigation bar, safe-area padding, bottom sheets, and persistent desktop workspace sidebar.
+- **Authentication & Authorization**:
+  - Firebase Authentication (`Email/Password`, Email Verification, Password Reset).
+  - Firebase Realtime Database (`users/{uid}/profile`, `users/{uid}/role`, `users/{uid}/status`, `users/{uid}/createdAt`).
+  - Node.js Express backend (`server.ts`) verifying Firebase ID tokens on every authenticated API & WebSocket upgrade via `firebase-admin`.
+  - Authoritative role & active-status resolution on the server; new registrations always receive `role = "client"` and `status = "active"`.
+- **Business Persistence & Realtime**: SQLite operational database (`storage/platform.db`), private authenticated file storage (`storage/uploads/`), Razorpay milestone checkout, PDF proposals/invoices, and WebSocket project chat rooms.
 
 ---
 
-## 📸 Screenshots
-| Home Screen | Help Section | Settings |
-| :---: | :---: | :---: |
-| ![Home](https://picsum.photos/seed/sanjay_home/400/800) | ![Help](https://picsum.photos/seed/sanjay_help/400/800) | ![Settings](https://picsum.photos/seed/sanjay_settings/400/800) |
+## Firebase Setup & Founder Admin Role Assignment
+
+1. **Enable Authentication & Realtime Database** in Firebase Console (`sanjay-vaishya-app`):
+   - Enable **Email/Password** sign-in under *Authentication -> Sign-in method*.
+   - Ensure Realtime Database (`https://sanjay-vaishya-app-default-rtdb.firebaseio.com`) is active.
+2. **Deploy Security Rules (`database.rules.json`)**:
+   - Publish the repository's `database.rules.json` to Firebase Realtime Database so users can only create their own initial `client` node and cannot escalate their own `role` or `status`.
+3. **Assign Founder Admin Role**:
+   - Register normally through `/register` with the founder email address.
+   - Open **Firebase Console -> Realtime Database -> `users/<your_uid>`** and change:
+     - `role`: `"admin"`
+     - `status`: `"active"`
+   - Refresh the app or sign in again; the Admin Control Center (`/admin`) unlocks automatically.
+4. **Optional Server Admin SDK Key**:
+   - Set `FIREBASE_SERVICE_ACCOUNT_JSON` (stringified JSON or path) in your production `.env` so the Node.js server can also write RTDB role updates when modifying users from the Admin User Management panel.
 
 ---
 
-## 🛠️ Tech Stack
-*   **Frontend:** React.js, TypeScript
-*   **Styling:** Tailwind CSS (v4), Framer Motion
-*   **Icons:** Material Icons Round, Lucide React
-*   **Fonts:** Manrope & Inter (Google Fonts)
-*   **Deployment:** Cloud Run / Vercel
+## Local Development & Production
 
----
+```bash
+npm install
+npm run lint
+npm run build
+npm run dev
+```
 
-## ⚙️ How to Use / Installation
-
-### For Users:
-Simply visit the live link: [sanjay.indiacybercafe.com](https://sanjay.indiacybercafe.com)
-
-### For Developers:
-1.  **Clone the repository:**
-    ```bash
-    git clone https://github.com/sanjayvaishya/sanjay-vaishya-app.git
-    ```
-2.  **Install dependencies:**
-    ```bash
-    npm install
-    ```
-3.  **Run the development server:**
-    ```bash
-    npm run dev
-    ```
-
----
-
-## 📞 Contact Information
-Feel free to reach out for any digital assistance or queries:
-
-*   **📍 Location:** Jobgarh, Singrauli, Madhya Pradesh, India (486886)
-*   **💬 WhatsApp/Phone:** [+91 9203251821](https://wa.me/919203251821)
-*   **📧 Email:** [sanjayvaishya.dev@gmail.com](mailto:sanjayvaishya.dev@gmail.com)
-*   **🌐 Website:** [sanjay.indiacybercafe.com](https://sanjay.indiacybercafe.com)
-
----
-
-## 🤝 Contribution Guidelines
-Contributions are welcome! If you have suggestions for new features or improvements that can help more people, feel free to:
-1. Fork the Project
-2. Create your Feature Branch (`git checkout -b feature/AmazingFeature`)
-3. Commit your Changes (`git commit -m 'Add some AmazingFeature'`)
-4. Push to the Branch (`git push origin feature/AmazingFeature`)
-5. Open a Pull Request
-
----
-
-## 📜 License
-This project is licensed under the **MIT License**. See the [LICENSE](LICENSE) file for details.
-
----
-
-## 💎 Credits
-**This project is fully developed and maintained by Sanjay Vaishya.**
-
-Sanjay Vaishya is committed to providing free digital support and developer guidance to the community. All design, logic, and implementation are the result of his personal dedication to helping others navigate the digital world.
-
----
-<p align="center">Made with ❤️ by <b>Sanjay Vaishya</b></p>
+Environment variables are documented in `.env.example`. Never commit `.env`, service account JSON credentials, or `storage/` database files.

@@ -1,9 +1,92 @@
 @import "tailwindcss";
 
-@variant dark (&:where(.dark, .dark *));
+@custom-variant dark (&:where(.dark, .dark *));
 
 @theme {
-  --color-premium: #834fff;
-  --color-premium-dark: #6d23f9;
-  --color-premium-light: #b89fff;
+  --font-sans: "Roboto", system-ui, -apple-system, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, monospace;
+
+  --color-hpc-bg: #0B0D11;
+  --color-hpc-surface: #13161D;
+  --color-hpc-elevated: #1A1E28;
+  --color-hpc-red: #ED1C24;
+  --color-hpc-red-hover: #B81D24;
+  --color-hpc-blue: #00BFFF;
+  --color-hpc-silver: #C0C0C0;
+  --color-hpc-secondary: #CCCCCC;
+  --color-hpc-success: #00CC66;
+  --color-hpc-text: #F4F6F9;
+}
+
+@layer base {
+  html {
+    font-family: "Roboto", system-ui, -apple-system, sans-serif;
+    background-color: #0B0D11;
+    color: #F4F6F9;
+    scroll-behavior: smooth;
+  }
+
+  body {
+    overflow-x: hidden;
+  }
+
+  h1, h2, h3, h4 {
+    font-family: "Roboto", system-ui, -apple-system, sans-serif;
+    font-weight: 700;
+    text-wrap: balance;
+    letter-spacing: -0.02em;
+  }
+
+  p {
+    line-height: 1.6;
+  }
+}
+
+.tabular-nums {
+  font-variant-numeric: tabular-nums;
+}
+
+.safe-pb {
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+
+@keyframes hpc-shimmer {
+  0% {
+    background-position: -200% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
+}
+
+.skeleton-shimmer {
+  background: linear-gradient(
+    90deg,
+    #13161D 0%,
+    #1E232E 50%,
+    #13161D 100%
+  );
+  background-size: 200% 100%;
+  animation: hpc-shimmer 1.6s ease-in-out infinite;
+}
+
+@keyframes data-flow {
+  0% {
+    stroke-dashoffset: 48;
+  }
+  100% {
+    stroke-dashoffset: 0;
+  }
+}
+
+.animate-data-flow {
+  stroke-dasharray: 8 8;
+  animation: data-flow 1.4s linear infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .skeleton-shimmer,
+  .animate-data-flow {
+    animation: none;
+  }
 }
