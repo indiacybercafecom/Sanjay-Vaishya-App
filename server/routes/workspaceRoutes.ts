@@ -487,6 +487,12 @@ workspaceRouter.post(
       return;
     }
 
+    const clientExists = db.prepare('SELECT id FROM users WHERE id = ?').get(clientUserId) as { id: number } | undefined;
+    if (!clientExists) {
+      res.status(404).json({ error: 'Selected client account does not exist.' });
+      return;
+    }
+
     const projectCode = `PRJ-${new Date().getFullYear()}-${crypto.randomBytes(2).toString('hex').toUpperCase()}`;
     const result = db.prepare(`
       INSERT INTO projects (project_code, title, description, client_user_id, manager_user_id, status, start_date, expected_delivery_date)
@@ -623,7 +629,7 @@ workspaceRouter.patch('/workspace/milestones/:id', requireAuth, (req: Authentica
   const ms = db.prepare(`
     SELECT m.*, p.client_user_id, p.manager_user_id, p.title as project_title
     FROM milestones m JOIN projects p ON p.id = m.project_id WHERE m.id = ?
-  `).get(milestoneId) as { id: number; project_id: number; title: string; client_user_id: number; project_title: string } | undefined;
+  `).get(milestoneId) as { id: number; project_id: number; title: string; status: string; client_user_id: number; project_title: string } | undefined;
 
   if (!ms || !canAccessProject(user, ms.project_id)) {
     res.status(403).json({ error: 'Access denied.' });
@@ -636,9 +642,9 @@ workspaceRouter.patch('/workspace/milestones/:id', requireAuth, (req: Authentica
     return;
   }
 
-  // Clients can only approve a milestone in 'review' -> 'completed'
-  if (user.primaryRole === 'client' && nextStatus !== 'completed') {
-    res.status(403).json({ error: 'Clients can only approve milestones into completed status.' });
+  // Clients can only approve a milestone currently in 'review' into 'completed'
+  if (user.primaryRole === 'client' && (ms.status !== 'review' || nextStatus !== 'completed')) {
+    res.status(403).json({ error: 'Clients can only approve milestones that are in review status.' });
     return;
   }
 
@@ -932,6 +938,11 @@ workspaceRouter.post('/workspace/proposals/:id/respond', requireAuth, (req: Auth
     return;
   }
 
+  if (proposal.status === 'draft' && user.primaryRole === 'client') {
+    res.status(403).json({ error: 'Draft proposals cannot be acted upon.' });
+    return;
+  }
+
   const map: Record<string, string> = {
     view: 'viewed',
     accept: 'accepted',
@@ -941,6 +952,11 @@ workspaceRouter.post('/workspace/proposals/:id/respond', requireAuth, (req: Auth
   const nextStatus = map[action];
   if (!nextStatus) {
     res.status(400).json({ error: 'Invalid proposal response action.' });
+    return;
+  }
+
+  if (proposal.status === 'accepted') {
+    res.status(409).json({ error: 'This proposal has already been accepted.' });
     return;
   }
 
@@ -1078,6 +1094,12 @@ workspaceRouter.post('/payments/razorpay/create-order', requireAuth, async (req:
     res.status(409).json({ error: 'Payment has already been completed.' });
     return;
   }
+  if (!Number.isFinite(payment.amount_inr) || payment.amount_inr <= 0) {
+    res.status(400).json({ error: 'Invalid payment amount.' });
+    return;
+  }
+
+  const amountPaise = Math.round(payment.amount_inr * 100);
 
   try {
     const authHeader = Buffer.from(`${ENV.RAZORPAY_KEY_ID}:${ENV.RAZORPAY_KEY_SECRET}`).toString('base64');
@@ -1088,7 +1110,7 @@ workspaceRouter.post('/payments/razorpay/create-order', requireAuth, async (req:
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        amount: payment.amount_inr * 100,
+        amount: amountPaise,
         currency: 'INR',
         receipt: payment.payment_code,
       }),
@@ -1128,11 +1150,20 @@ workspaceRouter.post('/payments/razorpay/verify', requireAuth, (req: Authenticat
   const razorpayPaymentId = sanitizeText(req.body?.razorpayPaymentId, 120);
   const razorpaySignature = sanitizeText(req.body?.razorpaySignature, 200);
 
+  if (!paymentId || !razorpayOrderId || !razorpayPaymentId || !/^[a-f0-9]{64}$/i.test(razorpaySignature)) {
+    res.status(400).json({ error: 'Invalid Razorpay verification payload.' });
+    return;
+  }
+
   const payment = db.prepare('SELECT * FROM payments WHERE id = ?').get(paymentId) as
     | { id: number; project_id: number | null; client_user_id: number; amount_inr: number; razorpay_order_id: string; status: string }
     | undefined;
 
-  if (!payment || payment.razorpay_order_id !== razorpayOrderId) {
+  if (!payment || (payment.client_user_id !== req.authUser!.id && !req.authUser!.roles.includes('admin'))) {
+    res.status(403).json({ error: 'Access denied to this payment record.' });
+    return;
+  }
+  if (!payment.razorpay_order_id || payment.razorpay_order_id !== razorpayOrderId) {
     res.status(400).json({ error: 'Order reference mismatch.' });
     return;
   }
@@ -1146,10 +1177,11 @@ workspaceRouter.post('/payments/razorpay/verify', requireAuth, (req: Authenticat
     .update(`${razorpayOrderId}|${razorpayPaymentId}`)
     .digest('hex');
 
-  const sigBuf = Buffer.from(razorpaySignature, 'hex');
-  const expBuf = Buffer.from(expectedSignature, 'hex');
+  const sigBuf = Buffer.from(razorpaySignature.toLowerCase(), 'hex');
+  const expBuf = Buffer.from(expectedSignature.toLowerCase(), 'hex');
   if (sigBuf.length !== expBuf.length || !crypto.timingSafeEqual(sigBuf, expBuf)) {
     db.prepare(`UPDATE payments SET status = 'failed', updated_at = datetime('now') WHERE id = ?`).run(payment.id);
+    logAudit(req.authUser!.id, 'payment_signature_failed', 'payment', payment.id, { razorpayOrderId }, req.ip);
     res.status(400).json({ error: 'Invalid payment signature.' });
     return;
   }
@@ -1158,7 +1190,7 @@ workspaceRouter.post('/payments/razorpay/verify', requireAuth, (req: Authenticat
     UPDATE payments
     SET razorpay_payment_id = ?, razorpay_signature = ?, status = 'successful', updated_at = datetime('now')
     WHERE id = ?
-  `).run(razorpayPaymentId, razorpaySignature, payment.id);
+  `).run(razorpayPaymentId, razorpaySignature.toLowerCase(), payment.id);
 
   const invoiceNumber = `INV-${new Date().getFullYear()}-${crypto.randomBytes(2).toString('hex').toUpperCase()}`;
   db.prepare(`
@@ -1177,39 +1209,47 @@ workspaceRouter.post('/payments/razorpay/webhook', (req, res) => {
     res.status(503).json({ error: 'Razorpay webhook secret not configured.' });
     return;
   }
-  const signature = String(req.headers['x-razorpay-signature'] || '');
+  const signature = String(req.headers['x-razorpay-signature'] || '').trim();
   const rawBody = (req as unknown as { rawBody?: Buffer }).rawBody;
-  if (!rawBody || !signature) {
-    res.status(400).json({ error: 'Missing webhook payload or signature.' });
+  if (!rawBody || !/^[a-f0-9]{64}$/i.test(signature)) {
+    res.status(400).json({ error: 'Missing or invalid webhook payload signature.' });
     return;
   }
 
   const expected = crypto.createHmac('sha256', ENV.RAZORPAY_WEBHOOK_SECRET).update(rawBody).digest('hex');
-  const sigBuf = Buffer.from(signature, 'hex');
-  const expBuf = Buffer.from(expected, 'hex');
+  const sigBuf = Buffer.from(signature.toLowerCase(), 'hex');
+  const expBuf = Buffer.from(expected.toLowerCase(), 'hex');
   if (sigBuf.length !== expBuf.length || !crypto.timingSafeEqual(sigBuf, expBuf)) {
     res.status(400).json({ error: 'Invalid webhook signature.' });
     return;
   }
 
   const event = req.body as { event?: string; payload?: { payment?: { entity?: { id?: string; order_id?: string } } } };
-  if (event.event === 'payment.captured') {
-    const entity = event.payload?.payment?.entity;
-    if (entity?.order_id && entity?.id) {
-      const payment = db.prepare(`SELECT * FROM payments WHERE razorpay_order_id = ?`).get(entity.order_id) as
-        | { id: number; project_id: number | null; client_user_id: number; amount_inr: number; status: string }
-        | undefined;
-      if (payment && payment.status !== 'successful') {
-        db.prepare(`UPDATE payments SET razorpay_payment_id = ?, status = 'successful', updated_at = datetime('now') WHERE id = ?`).run(
-          entity.id,
-          payment.id
-        );
-        const invoiceNumber = `INV-${new Date().getFullYear()}-${crypto.randomBytes(2).toString('hex').toUpperCase()}`;
-        db.prepare(`
-          INSERT OR IGNORE INTO invoices (invoice_number, payment_id, project_id, client_user_id, amount_inr, status)
-          VALUES (?, ?, ?, ?, ?, 'issued')
-        `).run(invoiceNumber, payment.id, payment.project_id, payment.client_user_id, payment.amount_inr);
-      }
+  const entity = event.payload?.payment?.entity;
+
+  if (event.event === 'payment.captured' && entity?.order_id && entity?.id) {
+    const payment = db.prepare(`SELECT * FROM payments WHERE razorpay_order_id = ?`).get(entity.order_id) as
+      | { id: number; project_id: number | null; client_user_id: number; amount_inr: number; status: string }
+      | undefined;
+    if (payment && payment.status !== 'successful') {
+      db.prepare(`UPDATE payments SET razorpay_payment_id = ?, status = 'successful', updated_at = datetime('now') WHERE id = ?`).run(
+        entity.id,
+        payment.id
+      );
+      const invoiceNumber = `INV-${new Date().getFullYear()}-${crypto.randomBytes(2).toString('hex').toUpperCase()}`;
+      db.prepare(`
+        INSERT OR IGNORE INTO invoices (invoice_number, payment_id, project_id, client_user_id, amount_inr, status)
+        VALUES (?, ?, ?, ?, ?, 'issued')
+      `).run(invoiceNumber, payment.id, payment.project_id, payment.client_user_id, payment.amount_inr);
+      logAudit(null, 'payment_webhook_captured', 'payment', payment.id, { razorpayPaymentId: entity.id, invoiceNumber }, req.ip);
+    }
+  } else if (event.event === 'payment.failed' && entity?.order_id) {
+    const payment = db.prepare(`SELECT id, status FROM payments WHERE razorpay_order_id = ?`).get(entity.order_id) as
+      | { id: number; status: string }
+      | undefined;
+    if (payment && payment.status !== 'successful') {
+      db.prepare(`UPDATE payments SET status = 'failed', updated_at = datetime('now') WHERE id = ?`).run(payment.id);
+      logAudit(null, 'payment_webhook_failed', 'payment', payment.id, { orderId: entity.order_id }, req.ip);
     }
   }
   res.json({ received: true });
@@ -1429,6 +1469,10 @@ workspaceRouter.post('/workspace/reviews', requireAuth, (req: AuthenticatedReque
     res.status(400).json({ error: 'Review comment is required.' });
     return;
   }
+  if (projectId && !canAccessProject(user, projectId)) {
+    res.status(403).json({ error: 'You cannot review a project outside your account.' });
+    return;
+  }
 
   const r = db.prepare(`
     INSERT INTO reviews (client_user_id, project_id, author_name, author_role, rating, comment, is_published)
@@ -1456,10 +1500,10 @@ workspaceRouter.patch('/admin/users/:id/role', requireRole('admin'), async (req:
   const targetId = Number(req.params.id);
   const role = sanitizeText(req.body?.role, 40) as UserRole;
   const isActive = req.body?.isActive !== undefined ? Boolean(req.body.isActive) : true;
-  const validRoles: UserRole[] = ['admin', 'project_manager', 'developer', 'designer', 'client'];
+  const validRoles: UserRole[] = ['project_manager', 'developer', 'designer', 'client'];
 
-  if (!validRoles.includes(role)) {
-    res.status(400).json({ error: 'Invalid role.' });
+  if (targetId === req.authUser!.id) {
+    res.status(400).json({ error: 'You cannot modify your own administrator role or active status from this panel.' });
     return;
   }
 
@@ -1468,6 +1512,19 @@ workspaceRouter.patch('/admin/users/:id/role', requireRole('admin'), async (req:
     | undefined;
   if (!targetRow) {
     res.status(404).json({ error: 'User not found.' });
+    return;
+  }
+
+  const targetRoles = db.prepare('SELECT role FROM user_roles WHERE user_id = ?').all(targetId) as { role: UserRole }[];
+  const targetIsAdmin = targetRoles.some((r) => r.role === 'admin');
+
+  if (role === 'admin' || targetIsAdmin) {
+    res.status(403).json({ error: 'Admin role must only be assigned or modified manually through Firebase Console.' });
+    return;
+  }
+
+  if (!validRoles.includes(role)) {
+    res.status(400).json({ error: 'Invalid staff or client role.' });
     return;
   }
 

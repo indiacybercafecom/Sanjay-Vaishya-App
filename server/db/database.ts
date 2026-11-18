@@ -4,7 +4,18 @@ import { DB_PATH } from '../config/env.ts';
 export const db = new DatabaseSync(DB_PATH);
 
 db.exec('PRAGMA journal_mode = WAL;');
+db.exec('PRAGMA synchronous = NORMAL;');
+db.exec('PRAGMA busy_timeout = 5000;');
 db.exec('PRAGMA foreign_keys = ON;');
+
+export function closeDatabase(): void {
+  try {
+    db.exec('PRAGMA wal_checkpoint(TRUNCATE);');
+    db.close();
+  } catch (err) {
+    console.error('Database close error:', err);
+  }
+}
 
 export function initializeDatabase(): void {
   db.exec(`

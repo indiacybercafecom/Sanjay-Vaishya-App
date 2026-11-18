@@ -24,7 +24,7 @@ export async function registerWithFirebaseEmail(
 
   try {
     await ensureInitialClientNode(cred.user.uid, {
-      name: cleanName,
+      name: cleanName || cleanEmail.split('@')[0] || 'Client User',
       email: (cred.user.email || cleanEmail).trim().toLowerCase(),
     });
   } catch (err) {
@@ -34,11 +34,25 @@ export async function registerWithFirebaseEmail(
     );
   }
 
+  // Refresh ID token so displayName claims are immediately included for backend verification
+  await cred.user.getIdToken(true);
   return cred.user;
 }
 
 export async function loginWithFirebaseEmail(email: string, password: string): Promise<User> {
+  const cleanEmail = email.trim().toLowerCase();
   const cred = await signInWithEmailAndPassword(firebaseAuth, email.trim(), password);
+
+  // Self-heal missing RTDB client node for legacy/interrupted accounts without touching existing nodes
+  try {
+    await ensureInitialClientNode(cred.user.uid, {
+      name: cred.user.displayName || cleanEmail.split('@')[0] || 'Client User',
+      email: (cred.user.email || cleanEmail).trim().toLowerCase(),
+    });
+  } catch {
+    // Non-fatal if RTDB node already exists or rules deny non-client write
+  }
+
   return cred.user;
 }
 

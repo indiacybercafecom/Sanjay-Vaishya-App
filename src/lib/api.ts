@@ -54,3 +54,36 @@ export async function apiUpload<T>(url: string, formData: FormData): Promise<T> 
     body: formData,
   });
 }
+
+export async function downloadProtectedFile(url: string, fallbackFilename: string): Promise<void> {
+  const headers = await getAuthHeaders();
+  const response = await fetch(url, {
+    credentials: 'include',
+    headers,
+  });
+
+  if (!response.ok) {
+    let message = `Unable to download file (${response.status})`;
+    try {
+      const errJson = (await response.json()) as { error?: string };
+      if (errJson.error) message = errJson.error;
+    } catch {
+      // Ignore parse failure
+    }
+    throw new Error(message);
+  }
+
+  const blob = await response.blob();
+  const disposition = response.headers.get('Content-Disposition') || '';
+  const match = /filename="?([^"]+)"?/i.exec(disposition);
+  const filename = match?.[1] || fallbackFilename || 'attachment';
+
+  const objectUrl = URL.createObjectURL(blob);
+  const anchor = document.createElement('a');
+  anchor.href = objectUrl;
+  anchor.download = filename;
+  document.body.appendChild(anchor);
+  anchor.click();
+  anchor.remove();
+  setTimeout(() => URL.revokeObjectURL(objectUrl), 1000);
+}

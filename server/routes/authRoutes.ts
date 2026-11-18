@@ -9,17 +9,33 @@ import {
   requireAuth,
   sanitizeText,
   logAudit,
+  authenticateFirebaseIdToken,
 } from '../middleware/auth.ts';
 
 export const authRouter = Router();
 
 // Synchronizes verified Firebase ID token into an HttpOnly cookie for direct attachment downloads & WebSockets
-authRouter.post('/session', requireAuth, (req: AuthenticatedRequest, res) => {
+authRouter.post('/session', requireAuth, async (req: AuthenticatedRequest, res) => {
+  const submittedName = sanitizeText(req.body?.name, 120);
+  if (req.firebaseIdToken && submittedName) {
+    try {
+      const refreshed = await authenticateFirebaseIdToken(req.firebaseIdToken, { name: submittedName });
+      if (refreshed?.user) {
+        req.authUser = refreshed.user;
+      }
+    } catch {
+      // Proceed with authenticated session user
+    }
+  }
+
+  const isSecureRequest =
+    req.secure || req.headers['x-forwarded-proto'] === 'https' || (!ENV.IS_DEV && ENV.APP_URL.startsWith('https://') && req.hostname !== 'localhost' && req.hostname !== '127.0.0.1');
+
   if (req.firebaseIdToken) {
     res.cookie(SESSION_COOKIE_NAME, signToken(req.firebaseIdToken), {
       httpOnly: true,
       sameSite: 'lax',
-      secure: !ENV.IS_DEV,
+      secure: isSecureRequest,
       maxAge: 60 * 60 * 1000, // 1 hour matching Firebase ID token lifetime
       path: '/',
     });

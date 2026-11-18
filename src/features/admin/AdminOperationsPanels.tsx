@@ -114,19 +114,23 @@ export function AdminOperationsPanels({
       <form
         onSubmit={async (e) => {
           e.preventDefault();
-          await apiFetch(`/api/workspace/projects/${taskForm.projectId}/tasks`, {
-            method: 'POST',
-            body: JSON.stringify({
-              title: taskForm.title,
-              description: taskForm.description,
-              assignedToUserId: taskForm.assignedToUserId ? Number(taskForm.assignedToUserId) : null,
-              priority: taskForm.priority,
-              dueDate: taskForm.dueDate,
-            }),
-          });
-          setTaskForm({ projectId: '', title: '', description: '', assignedToUserId: '', priority: 'medium', dueDate: '' });
-          showToast('Task created and assigned.');
-          await onReload();
+          try {
+            await apiFetch(`/api/workspace/projects/${taskForm.projectId}/tasks`, {
+              method: 'POST',
+              body: JSON.stringify({
+                title: taskForm.title,
+                description: taskForm.description,
+                assignedToUserId: taskForm.assignedToUserId ? Number(taskForm.assignedToUserId) : null,
+                priority: taskForm.priority,
+                dueDate: taskForm.dueDate,
+              }),
+            });
+            setTaskForm({ projectId: '', title: '', description: '', assignedToUserId: '', priority: 'medium', dueDate: '' });
+            showToast('Task created and assigned.');
+            await onReload();
+          } catch (err) {
+            showToast(err instanceof Error ? err.message : 'Unable to create task.', 'error');
+          }
         }}
         className="bg-[#13161D] border border-[#262B38] rounded-lg p-5 space-y-4"
       >
@@ -204,17 +208,21 @@ export function AdminOperationsPanels({
         <form
           onSubmit={async (e) => {
             e.preventDefault();
-            await apiFetch('/api/admin/services', {
-              method: 'POST',
-              body: JSON.stringify({
-                ...serviceForm,
-                features: serviceForm.featuresCsv.split(',').map((s) => s.trim()).filter(Boolean),
-                technologies: serviceForm.techCsv.split(',').map((s) => s.trim()).filter(Boolean),
-              }),
-            });
-            setServiceForm({ title: '', category: '', summary: '', description: '', featuresCsv: '', techCsv: '' });
-            showToast('Service created.');
-            await Promise.all([onReload(), refreshPublicData()]);
+            try {
+              await apiFetch('/api/admin/services', {
+                method: 'POST',
+                body: JSON.stringify({
+                  ...serviceForm,
+                  features: serviceForm.featuresCsv.split(',').map((s) => s.trim()).filter(Boolean),
+                  technologies: serviceForm.techCsv.split(',').map((s) => s.trim()).filter(Boolean),
+                }),
+              });
+              setServiceForm({ title: '', category: '', summary: '', description: '', featuresCsv: '', techCsv: '' });
+              showToast('Service created.');
+              await Promise.all([onReload(), refreshPublicData()]);
+            } catch (err) {
+              showToast(err instanceof Error ? err.message : 'Unable to publish service.', 'error');
+            }
           }}
           className="bg-[#13161D] border border-[#262B38] rounded-lg p-5 space-y-4"
         >
@@ -276,11 +284,15 @@ export function AdminOperationsPanels({
               <button
                 type="button"
                 onClick={async () => {
-                  await apiFetch(`/api/admin/services/${srv.id}`, {
-                    method: 'PATCH',
-                    body: JSON.stringify({ isPublished: !srv.is_published }),
-                  });
-                  await Promise.all([onReload(), refreshPublicData()]);
+                  try {
+                    await apiFetch(`/api/admin/services/${srv.id}`, {
+                      method: 'PATCH',
+                      body: JSON.stringify({ isPublished: !srv.is_published }),
+                    });
+                    await Promise.all([onReload(), refreshPublicData()]);
+                  } catch (err) {
+                    showToast(err instanceof Error ? err.message : 'Unable to update service.', 'error');
+                  }
                 }}
                 className="min-h-[38px] px-3 py-1.5 rounded-lg border border-[#333333] text-xs text-white"
               >
@@ -299,26 +311,30 @@ export function AdminOperationsPanels({
         <form
           onSubmit={async (e) => {
             e.preventDefault();
-            await apiFetch('/api/admin/portfolio', {
-              method: 'POST',
-              body: JSON.stringify({
-                ...portfolioForm,
-                technologies: portfolioForm.techCsv.split(',').map((s) => s.trim()).filter(Boolean),
-              }),
-            });
-            setPortfolioForm({
-              title: '',
-              category: 'Web Application',
-              summary: '',
-              description: '',
-              challenges: '',
-              solution: '',
-              techCsv: '',
-              liveUrl: '',
-              githubUrl: '',
-            });
-            showToast('Portfolio case study saved.');
-            await Promise.all([onReload(), refreshPublicData()]);
+            try {
+              await apiFetch('/api/admin/portfolio', {
+                method: 'POST',
+                body: JSON.stringify({
+                  ...portfolioForm,
+                  technologies: portfolioForm.techCsv.split(',').map((s) => s.trim()).filter(Boolean),
+                }),
+              });
+              setPortfolioForm({
+                title: '',
+                category: 'Web Application',
+                summary: '',
+                description: '',
+                challenges: '',
+                solution: '',
+                techCsv: '',
+                liveUrl: '',
+                githubUrl: '',
+              });
+              showToast('Portfolio case study saved.');
+              await Promise.all([onReload(), refreshPublicData()]);
+            } catch (err) {
+              showToast(err instanceof Error ? err.message : 'Unable to save portfolio project.', 'error');
+            }
           }}
           className="bg-[#13161D] border border-[#262B38] rounded-lg p-5 space-y-4"
         >
@@ -404,11 +420,15 @@ export function AdminOperationsPanels({
               <button
                 type="button"
                 onClick={async () => {
-                  await apiFetch(`/api/admin/portfolio/${item.id}`, {
-                    method: 'PATCH',
-                    body: JSON.stringify({ isPublished: !item.is_published }),
-                  });
-                  await Promise.all([onReload(), refreshPublicData()]);
+                  try {
+                    await apiFetch(`/api/admin/portfolio/${item.id}`, {
+                      method: 'PATCH',
+                      body: JSON.stringify({ isPublished: !item.is_published }),
+                    });
+                    await Promise.all([onReload(), refreshPublicData()]);
+                  } catch (err) {
+                    showToast(err instanceof Error ? err.message : 'Unable to update portfolio.', 'error');
+                  }
                 }}
                 className="min-h-[38px] px-3 py-1.5 rounded-lg border border-[#333333] text-xs text-white"
               >
@@ -427,23 +447,27 @@ export function AdminOperationsPanels({
         <form
           onSubmit={async (e) => {
             e.preventDefault();
-            const res = await apiFetch<{ proposalCode: string }>('/api/admin/proposals', {
-              method: 'POST',
-              body: JSON.stringify({
-                clientUserId: Number(proposalForm.clientUserId),
-                inquiryId: proposalForm.inquiryId ? Number(proposalForm.inquiryId) : null,
-                projectId: proposalForm.projectId ? Number(proposalForm.projectId) : null,
-                title: proposalForm.title,
-                scopeSummary: proposalForm.scopeSummary,
-                timeline: proposalForm.timeline,
-                paymentSchedule: proposalForm.paymentSchedule,
-                terms: proposalForm.terms,
-                sendNow: proposalForm.sendNow,
-                items: proposalForm.items,
-              }),
-            });
-            showToast(`Proposal ${res.proposalCode} created.`);
-            await onReload();
+            try {
+              const res = await apiFetch<{ proposalCode: string }>('/api/admin/proposals', {
+                method: 'POST',
+                body: JSON.stringify({
+                  clientUserId: Number(proposalForm.clientUserId),
+                  inquiryId: proposalForm.inquiryId ? Number(proposalForm.inquiryId) : null,
+                  projectId: proposalForm.projectId ? Number(proposalForm.projectId) : null,
+                  title: proposalForm.title,
+                  scopeSummary: proposalForm.scopeSummary,
+                  timeline: proposalForm.timeline,
+                  paymentSchedule: proposalForm.paymentSchedule,
+                  terms: proposalForm.terms,
+                  sendNow: proposalForm.sendNow,
+                  items: proposalForm.items,
+                }),
+              });
+              showToast(`Proposal ${res.proposalCode} created.`);
+              await onReload();
+            } catch (err) {
+              showToast(err instanceof Error ? err.message : 'Unable to create proposal.', 'error');
+            }
           }}
           className="bg-[#13161D] border border-[#262B38] rounded-lg p-5 space-y-4"
         >
@@ -593,18 +617,22 @@ export function AdminOperationsPanels({
         <form
           onSubmit={async (e) => {
             e.preventDefault();
-            await apiFetch('/api/admin/payments', {
-              method: 'POST',
-              body: JSON.stringify({
-                clientUserId: Number(paymentReqForm.clientUserId),
-                projectId: paymentReqForm.projectId ? Number(paymentReqForm.projectId) : null,
-                amountInr: Number(paymentReqForm.amountInr),
-                paymentType: paymentReqForm.paymentType,
-              }),
-            });
-            setPaymentReqForm({ clientUserId: '', projectId: '', amountInr: '', paymentType: 'milestone' });
-            showToast('Payment request issued.');
-            await onReload();
+            try {
+              await apiFetch('/api/admin/payments', {
+                method: 'POST',
+                body: JSON.stringify({
+                  clientUserId: Number(paymentReqForm.clientUserId),
+                  projectId: paymentReqForm.projectId ? Number(paymentReqForm.projectId) : null,
+                  amountInr: Number(paymentReqForm.amountInr),
+                  paymentType: paymentReqForm.paymentType,
+                }),
+              });
+              setPaymentReqForm({ clientUserId: '', projectId: '', amountInr: '', paymentType: 'milestone' });
+              showToast('Payment request issued.');
+              await onReload();
+            } catch (err) {
+              showToast(err instanceof Error ? err.message : 'Unable to create payment request.', 'error');
+            }
           }}
           className="bg-[#13161D] border border-[#262B38] rounded-lg p-5 space-y-4"
         >
@@ -735,8 +763,12 @@ export function AdminOperationsPanels({
           <button
             type="button"
             onClick={async () => {
-              await apiFetch('/api/workspace/notifications/read-all', { method: 'POST' });
-              await refreshNotifications();
+              try {
+                await apiFetch('/api/workspace/notifications/read-all', { method: 'POST' });
+                await refreshNotifications();
+              } catch (err) {
+                showToast(err instanceof Error ? err.message : 'Unable to update notifications.', 'error');
+              }
             }}
             className="text-xs text-[#00BFFF] hover:underline"
           >
@@ -759,13 +791,17 @@ export function AdminOperationsPanels({
         <form
           onSubmit={async (e) => {
             e.preventDefault();
-            await apiFetch('/api/admin/blog', {
-              method: 'POST',
-              body: JSON.stringify(blogForm),
-            });
-            setBlogForm({ title: '', summary: '', content: '', category: 'Engineering', tag: 'Architecture' });
-            showToast('Blog post published.');
-            await Promise.all([onReload(), refreshPublicData()]);
+            try {
+              await apiFetch('/api/admin/blog', {
+                method: 'POST',
+                body: JSON.stringify(blogForm),
+              });
+              setBlogForm({ title: '', summary: '', content: '', category: 'Engineering', tag: 'Architecture' });
+              showToast('Blog post published.');
+              await Promise.all([onReload(), refreshPublicData()]);
+            } catch (err) {
+              showToast(err instanceof Error ? err.message : 'Unable to publish blog post.', 'error');
+            }
           }}
           className="bg-[#13161D] border border-[#262B38] rounded-lg p-5 space-y-4"
         >
@@ -840,11 +876,15 @@ export function AdminOperationsPanels({
               <button
                 type="button"
                 onClick={async () => {
-                  await apiFetch(`/api/admin/reviews/${rev.id}`, {
-                    method: 'PATCH',
-                    body: JSON.stringify({ isPublished: !rev.is_published }),
-                  });
-                  await Promise.all([onReload(), refreshPublicData()]);
+                  try {
+                    await apiFetch(`/api/admin/reviews/${rev.id}`, {
+                      method: 'PATCH',
+                      body: JSON.stringify({ isPublished: !rev.is_published }),
+                    });
+                    await Promise.all([onReload(), refreshPublicData()]);
+                  } catch (err) {
+                    showToast(err instanceof Error ? err.message : 'Unable to update review.', 'error');
+                  }
                 }}
                 className="min-h-[38px] px-3.5 py-2 rounded-lg border border-[#333333] text-xs text-white"
               >
@@ -865,7 +905,7 @@ export function AdminOperationsPanels({
           <div className="space-y-1">
             <p className="font-bold text-white">Firebase Auth &amp; Realtime Database Role Authority</p>
             <p className="text-[#CCCCCC] leading-relaxed">
-              Every user registers with default role <span className="font-mono text-[#00BFFF]">client</span>. Authorized staff roles (<span className="font-mono text-white">admin, project_manager, developer, designer</span>) can be assigned here (synced to Firebase RTDB) or directly inside Firebase Console at <span className="font-mono text-[#00BFFF]">users/&lt;uid&gt;/role</span>.
+              Every user registers with default role <span className="font-mono text-[#00BFFF]">client</span>. Authorized team roles (<span className="font-mono text-white">project_manager, developer, designer</span>) can be assigned here, while the <span className="font-mono text-[#ED1C24]">admin</span> role must only be manually assigned inside Firebase Console at <span className="font-mono text-[#00BFFF]">users/&lt;uid&gt;/role</span>.
             </p>
           </div>
         </div>
@@ -877,6 +917,7 @@ export function AdminOperationsPanels({
           ) : (
             users.map((u) => {
               const primaryRole = (u.roles_csv || 'client').split(',')[0] as UserRole;
+              const isAdminAccount = primaryRole === 'admin';
               return (
                 <div
                   key={u.id}
@@ -890,41 +931,58 @@ export function AdminOperationsPanels({
                     )}
                   </div>
                   <div className="flex items-center gap-2">
-                    <select
-                      value={primaryRole}
-                      onChange={async (e) => {
-                        await apiFetch(`/api/admin/users/${u.id}/role`, {
-                          method: 'PATCH',
-                          body: JSON.stringify({ role: e.target.value, isActive: Boolean(u.is_active) }),
-                        });
-                        showToast('User role updated & synced.');
-                        await onReload();
-                      }}
-                      className="min-h-[38px] px-2.5 rounded-lg bg-[#0B0D11] border border-[#2B3140] text-xs text-white"
-                    >
-                      {['admin', 'project_manager', 'developer', 'designer', 'client'].map((r) => (
-                        <option key={r} value={r}>
-                          {r}
-                        </option>
-                      ))}
-                    </select>
-                    <button
-                      type="button"
-                      onClick={async () => {
-                        await apiFetch(`/api/admin/users/${u.id}/role`, {
-                          method: 'PATCH',
-                          body: JSON.stringify({ role: primaryRole, isActive: !u.is_active }),
-                        });
-                        await onReload();
-                      }}
-                      className={`min-h-[38px] px-3 py-1.5 rounded-lg border text-xs font-medium ${
-                        u.is_active
-                          ? 'border-[#00CC66]/40 text-[#00CC66]'
-                          : 'border-[#ED1C24]/40 text-[#ED1C24]'
-                      }`}
-                    >
-                      {u.is_active ? 'Active' : 'Disabled'}
-                    </button>
+                    {isAdminAccount ? (
+                      <span className="min-h-[38px] px-3 py-2 rounded-lg bg-[#0B0D11] border border-[#ED1C24]/50 font-mono text-xs text-[#ED1C24] inline-flex items-center">
+                        admin (Firebase Console)
+                      </span>
+                    ) : (
+                      <>
+                        <select
+                          value={primaryRole}
+                          onChange={async (e) => {
+                            try {
+                              await apiFetch(`/api/admin/users/${u.id}/role`, {
+                                method: 'PATCH',
+                                body: JSON.stringify({ role: e.target.value, isActive: Boolean(u.is_active) }),
+                              });
+                              showToast('User role updated & synced.');
+                              await onReload();
+                            } catch (err) {
+                              showToast(err instanceof Error ? err.message : 'Unable to update role.', 'error');
+                            }
+                          }}
+                          className="min-h-[38px] px-2.5 rounded-lg bg-[#0B0D11] border border-[#2B3140] text-xs text-white"
+                        >
+                          {['project_manager', 'developer', 'designer', 'client'].map((r) => (
+                            <option key={r} value={r}>
+                              {r}
+                            </option>
+                          ))}
+                        </select>
+                        <button
+                          type="button"
+                          onClick={async () => {
+                            try {
+                              await apiFetch(`/api/admin/users/${u.id}/role`, {
+                                method: 'PATCH',
+                                body: JSON.stringify({ role: primaryRole, isActive: !u.is_active }),
+                              });
+                              showToast(`Account ${!u.is_active ? 'enabled' : 'disabled'}.`);
+                              await onReload();
+                            } catch (err) {
+                              showToast(err instanceof Error ? err.message : 'Unable to update status.', 'error');
+                            }
+                          }}
+                          className={`min-h-[38px] px-3 py-1.5 rounded-lg border text-xs font-medium ${
+                            u.is_active
+                              ? 'border-[#00CC66]/40 text-[#00CC66]'
+                              : 'border-[#ED1C24]/40 text-[#ED1C24]'
+                          }`}
+                        >
+                          {u.is_active ? 'Active' : 'Disabled'}
+                        </button>
+                      </>
+                    )}
                   </div>
                 </div>
               );

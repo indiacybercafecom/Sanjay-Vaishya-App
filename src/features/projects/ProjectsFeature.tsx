@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { FolderKanban, MessageSquare, Download } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
-import { apiFetch, apiUpload } from '../../lib/api';
+import { apiFetch, apiUpload, downloadProtectedFile } from '../../lib/api';
 import { EmptyState } from '../../components/common/EmptyState';
 import { LoadingSkeleton } from '../../components/common/LoadingSkeleton';
 import type { ProjectRecord, MilestoneRecord, TaskRecord, ProjectUpdateRecord } from '../../types/platform';
@@ -39,15 +39,15 @@ export function ProjectsFeature({ initialProjectId, onNavigate }: ProjectsFeatur
     try {
       const res = await apiFetch<{ projects: ProjectRecord[] }>('/api/workspace/projects');
       setProjects(res.projects);
-      if (res.projects.length > 0 && !selectedProjectId) {
-        setSelectedProjectId(res.projects[0].id);
+      if (res.projects.length > 0) {
+        setSelectedProjectId((prev) => prev || res.projects[0].id);
       }
     } catch (err) {
       showToast(err instanceof Error ? err.message : 'Unable to load projects.', 'error');
     } finally {
       setLoading(false);
     }
-  }, [selectedProjectId, showToast]);
+  }, [showToast]);
 
   const loadDetail = useCallback(
     async (projectId: number) => {
@@ -362,11 +362,14 @@ export function ProjectsFeature({ initialProjectId, onNavigate }: ProjectsFeatur
                     className="w-full px-3 py-2 rounded-lg bg-[#0B0D11] border border-[#2B3140] text-xs text-white"
                   />
                   <div className="flex flex-wrap items-center justify-between gap-3">
-                    <input
-                      type="file"
-                      onChange={(e) => setUpdateFile(e.target.files?.[0] || null)}
-                      className="text-xs text-[#CCCCCC] max-w-full"
-                    />
+                    <label className="min-h-[42px] px-3 py-2 rounded-lg bg-[#0B0D11] border border-[#2B3140] hover:border-[#00BFFF] text-xs text-[#CCCCCC] inline-flex items-center gap-2 cursor-pointer max-w-full overflow-hidden">
+                      <span className="truncate">{updateFile ? updateFile.name : 'Attach deliverable file (optional)'}</span>
+                      <input
+                        type="file"
+                        onChange={(e) => setUpdateFile(e.target.files?.[0] || null)}
+                        className="hidden"
+                      />
+                    </label>
                     <button
                       type="submit"
                       className="min-h-[42px] px-5 py-2 rounded-lg bg-[#ED1C24] hover:bg-[#B81D24] text-white text-xs font-semibold"
@@ -402,13 +405,23 @@ export function ProjectsFeature({ initialProjectId, onNavigate }: ProjectsFeatur
                         </div>
                         <p className="text-xs text-[#CCCCCC] leading-relaxed">{upd.body}</p>
                         {upd.deliverable_attachment_id && (
-                          <a
-                            href={`/api/attachments/${upd.deliverable_attachment_id}`}
-                            className="inline-flex items-center gap-2 px-3 py-2 rounded-lg bg-[#0B0D11] border border-[#2B3140] text-xs text-[#00BFFF] hover:border-[#00BFFF]"
+                          <button
+                            type="button"
+                            onClick={async () => {
+                              try {
+                                await downloadProtectedFile(
+                                  `/api/attachments/${upd.deliverable_attachment_id}`,
+                                  upd.deliverable_name || 'deliverable'
+                                );
+                              } catch (err) {
+                                showToast(err instanceof Error ? err.message : 'Download failed.', 'error');
+                              }
+                            }}
+                            className="inline-flex items-center gap-2 min-h-[40px] px-3 py-2 rounded-lg bg-[#0B0D11] border border-[#2B3140] text-xs text-[#00BFFF] hover:border-[#00BFFF]"
                           >
                             <Download className="w-3.5 h-3.5" />
                             Download ({upd.deliverable_name || 'Deliverable'})
-                          </a>
+                          </button>
                         )}
                         {upd.client_feedback && (
                           <p className="text-xs text-[#F4F6F9] p-2.5 rounded bg-[#0B0D11] border border-[#262B38]">

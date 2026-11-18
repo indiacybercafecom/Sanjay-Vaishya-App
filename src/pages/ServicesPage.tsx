@@ -35,7 +35,7 @@ export default function ServicesPage({ onSelectServiceQuote }: ServicesPageProps
       </div>
 
       {/* Category Filter Strip */}
-      <div className="flex flex-wrap items-center gap-2">
+      <div className="flex items-center gap-2 overflow-x-auto pb-1 md:flex-wrap md:overflow-visible">
         <button
           type="button"
           onClick={() => setSelectedSlug('all')}

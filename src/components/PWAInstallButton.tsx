@@ -77,7 +77,7 @@ export function OfflineIndicator() {
 
   return (
     <div
-      className="fixed bottom-4 left-4 z-[500] flex items-center gap-2 rounded-lg bg-[#1A1E28] border border-[#ED1C24] px-3.5 py-2 text-xs font-medium text-white shadow-xl"
+      className="fixed bottom-[calc(70px+env(safe-area-inset-bottom,0px))] md:bottom-4 left-3 right-3 sm:right-auto z-[500] flex items-center gap-2 rounded-lg bg-[#1A1E28] border border-[#ED1C24] px-3.5 py-2 text-xs font-medium text-white shadow-xl"
       role="status"
     >
       <WifiOff className="w-4 h-4 text-[#ED1C24] shrink-0" />

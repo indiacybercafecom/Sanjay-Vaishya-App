@@ -115,6 +115,15 @@ export function AppRouter() {
     return () => window.removeEventListener('popstate', onPopState);
   }, []);
 
+  useEffect(() => {
+    if (!authLoading && user && (currentPath === '/login' || currentPath === '/register')) {
+      const isStaff = user.roles.some((r) => ['admin', 'project_manager'].includes(r));
+      const target = isStaff ? '/admin' : '/dashboard';
+      window.history.replaceState({}, '', target);
+      setCurrentPath(target);
+    }
+  }, [authLoading, user, currentPath]);
+
   const handleToggleDeleteOption = (key: 'contactData' | 'usageLogs' | 'personalInfo' | 'other') => {
     setDeleteOptions((prev) => ({ ...prev, [key]: !prev[key] }));
   };
@@ -373,14 +382,14 @@ export function AppRouter() {
         <div
           role="status"
           aria-live="polite"
-          className="fixed top-16 right-4 z-[500] max-w-sm bg-[#1A1E28] border border-[#2B3140] shadow-[0_8px_32px_rgba(0,0,0,0.6)] rounded-lg px-4 py-3 flex items-center gap-3 text-xs text-white"
+          className="fixed top-16 left-3 right-3 sm:left-auto sm:right-4 z-[500] sm:max-w-sm bg-[#1A1E28] border border-[#2B3140] shadow-[0_8px_32px_rgba(0,0,0,0.6)] rounded-lg px-4 py-3 flex items-center gap-3 text-xs text-white"
         >
           {toast.type === 'error' ? (
             <AlertCircle className="w-4 h-4 text-[#ED1C24] shrink-0" />
           ) : (
             <CheckCircle2 className="w-4 h-4 text-[#00CC66] shrink-0" />
           )}
-          <span>{toast.message}</span>
+          <span className="break-words">{toast.message}</span>
         </div>
       )}
     </>

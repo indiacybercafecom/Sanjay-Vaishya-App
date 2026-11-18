@@ -66,6 +66,7 @@ export function AuthScreens({ mode, onNavigate }: AuthScreensProps) {
       await loginWithFirebaseEmail(loginEmail, loginPassword);
       const syncedUser = await refreshAuth(true);
       if (!syncedUser) {
+        setErrorMsg('Unable to complete session synchronization. Please verify your account status and try again.');
         return;
       }
       showToast('Signed in successfully.');

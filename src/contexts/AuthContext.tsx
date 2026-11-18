@@ -64,9 +64,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [wsSocket, setWsSocket] = useState<WebSocket | null>(null);
 
   const wsRef = useRef<WebSocket | null>(null);
+  const userRef = useRef<AuthUser | null>(null);
   const inFlightSyncRef = useRef<Promise<AuthUser | null> | null>(null);
   const lastSyncedTokenRef = useRef<string | null>(null);
   const lastRtdbSignatureRef = useRef<string | null>(null);
+
+  useEffect(() => {
+    userRef.current = user;
+  }, [user]);
 
   const showToast = useCallback((message: string, type: 'info' | 'error' = 'info') => {
     setToast({ message, type });
@@ -118,16 +123,19 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         return null;
       }
 
-      // Deduplicate concurrent sync calls unless forcing a fresh role/token sync
-      if (inFlightSyncRef.current && !forceTokenRefresh) {
-        return inFlightSyncRef.current;
+      if (inFlightSyncRef.current) {
+        if (!forceTokenRefresh) {
+          return inFlightSyncRef.current;
+        }
+        await inFlightSyncRef.current.catch(() => null);
       }
 
       const runSync = async (): Promise<AuthUser | null> => {
         try {
           const idToken = await fbUser.getIdToken(forceTokenRefresh);
-          if (!forceTokenRefresh && lastSyncedTokenRef.current === idToken && user?.firebaseUid === fbUser.uid) {
-            return user;
+          const currentUser = userRef.current;
+          if (!forceTokenRefresh && lastSyncedTokenRef.current === idToken && currentUser?.firebaseUid === fbUser.uid) {
+            return currentUser;
           }
 
           const res = await fetch('/api/auth/session', {
@@ -183,7 +191,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       inFlightSyncRef.current = promise;
       return promise;
     },
-    [user]
+    []
   );
 
   const refreshAuth = useCallback(

@@ -1,4 +1,6 @@
-import { initializeApp, getApps, getApp, cert, type App } from 'firebase-admin/app';
+import fs from 'node:fs';
+import path from 'node:path';
+import { initializeApp, getApps, getApp, cert, type App, type ServiceAccount } from 'firebase-admin/app';
 import { getAuth, type DecodedIdToken } from 'firebase-admin/auth';
 import { getDatabase } from 'firebase-admin/database';
 import { ENV } from '../config/env.ts';
@@ -10,6 +12,26 @@ const VALID_ROLES = new Set<UserRole>(['admin', 'project_manager', 'developer', 
 
 let hasServiceAccount = false;
 
+function parseServiceAccountInput(raw: string): ServiceAccount | null {
+  if (!raw) return null;
+  let jsonText = raw.trim();
+
+  // Support either direct JSON or path to a local service account file
+  if (!jsonText.startsWith('{')) {
+    const resolvedPath = path.isAbsolute(jsonText) ? jsonText : path.resolve(process.cwd(), jsonText);
+    if (!fs.existsSync(resolvedPath)) {
+      throw new Error(`Service account file not found at ${resolvedPath}`);
+    }
+    jsonText = fs.readFileSync(resolvedPath, 'utf8');
+  }
+
+  const parsed = JSON.parse(jsonText) as ServiceAccount & { private_key?: string };
+  if (typeof parsed.private_key === 'string') {
+    parsed.private_key = parsed.private_key.replace(/\\n/g, '\n');
+  }
+  return parsed;
+}
+
 function initAdminApp(): App {
   if (getApps().length > 0) {
     return getApp();
@@ -17,15 +39,17 @@ function initAdminApp(): App {
 
   if (ENV.FIREBASE_SERVICE_ACCOUNT_JSON) {
     try {
-      const parsed = JSON.parse(ENV.FIREBASE_SERVICE_ACCOUNT_JSON);
-      hasServiceAccount = true;
-      return initializeApp({
-        credential: cert(parsed),
-        projectId: ENV.FIREBASE_PROJECT_ID,
-        databaseURL: ENV.FIREBASE_DATABASE_URL,
-      });
+      const parsed = parseServiceAccountInput(ENV.FIREBASE_SERVICE_ACCOUNT_JSON);
+      if (parsed) {
+        hasServiceAccount = true;
+        return initializeApp({
+          credential: cert(parsed),
+          projectId: ENV.FIREBASE_PROJECT_ID,
+          databaseURL: ENV.FIREBASE_DATABASE_URL,
+        });
+      }
     } catch (err) {
-      console.error('Invalid FIREBASE_SERVICE_ACCOUNT_JSON format:', err);
+      console.error('Invalid FIREBASE_SERVICE_ACCOUNT_JSON configuration:', err);
     }
   }
 
@@ -48,20 +72,24 @@ export interface FirebaseUserRecordRTDB {
   role?: string;
   status?: string;
   createdAt?: string;
+  updatedAt?: string;
 }
 
 export async function verifyFirebaseIdToken(idToken: string): Promise<DecodedIdToken> {
+  if (!idToken || typeof idToken !== 'string') {
+    throw new Error('Missing Firebase ID token.');
+  }
   return adminAuth.verifyIdToken(idToken);
 }
 
 export async function fetchFirebaseUserNode(
   uid: string,
   callerIdToken?: string
-): Promise<FirebaseUserRecordRTDB | null> {
+): Promise<{ node: FirebaseUserRecordRTDB | null; lookupOk: boolean }> {
   if (hasServiceAccount) {
     try {
       const snap = await getDatabase(adminApp).ref(`users/${uid}`).once('value');
-      return (snap.val() as FirebaseUserRecordRTDB | null) || null;
+      return { node: (snap.val() as FirebaseUserRecordRTDB | null) || null, lookupOk: true };
     } catch (err) {
       console.error('Admin RTDB read failed, falling back to token-scoped RTDB lookup:', err);
     }
@@ -70,19 +98,18 @@ export async function fetchFirebaseUserNode(
   // Fallback using verified user ID token against Firebase RTDB REST API (enforced by database.rules.json)
   if (callerIdToken) {
     try {
-      const url = `${ENV.FIREBASE_DATABASE_URL}/users/${encodeURIComponent(uid)}.json?auth=${encodeURIComponent(
-        callerIdToken
-      )}`;
+      const baseDbUrl = ENV.FIREBASE_DATABASE_URL.replace(/\/+$/, '');
+      const url = `${baseDbUrl}/users/${encodeURIComponent(uid)}.json?auth=${encodeURIComponent(callerIdToken)}`;
       const res = await fetch(url);
       if (res.ok) {
-        return (await res.json()) as FirebaseUserRecordRTDB | null;
+        return { node: ((await res.json()) as FirebaseUserRecordRTDB | null) || null, lookupOk: true };
       }
     } catch (err) {
       console.error('RTDB token-scoped lookup error:', err);
     }
   }
 
-  return null;
+  return { node: null, lookupOk: false };
 }
 
 export function normalizeRole(rawRole: unknown): UserRole {

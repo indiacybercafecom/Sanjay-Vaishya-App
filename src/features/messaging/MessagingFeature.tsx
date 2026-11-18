@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { MessageSquare, Send, Paperclip, Trash2, Download } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
-import { apiFetch, apiUpload } from '../../lib/api';
+import { apiFetch, apiUpload, downloadProtectedFile } from '../../lib/api';
 import { EmptyState } from '../../components/common/EmptyState';
 import { LoadingSkeleton } from '../../components/common/LoadingSkeleton';
 import type { ConversationRecord, ChatMessageRecord } from '../../types/platform';
@@ -22,15 +22,15 @@ export function MessagingFeature() {
     try {
       const con = await apiFetch<{ conversations: ConversationRecord[] }>('/api/workspace/conversations');
       setConversations(con.conversations);
-      if (con.conversations.length > 0 && !selectedConvoId) {
-        setSelectedConvoId(con.conversations[0].id);
+      if (con.conversations.length > 0) {
+        setSelectedConvoId((prev) => prev || con.conversations[0].id);
       }
     } catch (err) {
       showToast(err instanceof Error ? err.message : 'Unable to load channels.', 'error');
     } finally {
       setLoading(false);
     }
-  }, [selectedConvoId, showToast]);
+  }, [showToast]);
 
   useEffect(() => {
     loadConversations();
@@ -149,7 +149,7 @@ export function MessagingFeature() {
         />
       ) : (
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-5">
-          <div className="lg:col-span-4 space-y-2">
+          <div className="lg:col-span-4 space-y-2 max-h-[168px] lg:max-h-none overflow-y-auto pr-0.5">
             {conversations.map((convo) => (
               <button
                 key={convo.id}
@@ -221,13 +221,23 @@ export function MessagingFeature() {
                       </div>
                       <p className="text-xs text-[#F4F6F9] leading-relaxed break-words">{msg.body}</p>
                       {msg.attachment_id && !msg.is_deleted && (
-                        <a
-                          href={`/api/attachments/${msg.attachment_id}`}
-                          className="inline-flex items-center gap-1.5 text-[11px] text-[#00BFFF] hover:underline"
+                        <button
+                          type="button"
+                          onClick={async () => {
+                            try {
+                              await downloadProtectedFile(
+                                `/api/attachments/${msg.attachment_id}`,
+                                msg.attachment_name || 'attachment'
+                              );
+                            } catch (err) {
+                              showToast(err instanceof Error ? err.message : 'Download failed.', 'error');
+                            }
+                          }}
+                          className="inline-flex items-center gap-1.5 text-[11px] text-[#00BFFF] hover:underline py-1"
                         >
                           <Download className="w-3 h-3" />
                           {msg.attachment_name || 'Download Attachment'}
-                        </a>
+                        </button>
                       )}
                     </div>
                   );

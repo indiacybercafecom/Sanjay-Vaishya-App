@@ -96,8 +96,11 @@ export function loadUserById(userId: number): AuthUser | null {
   };
 }
 
+const uidSyncLocks = new Map<string, Promise<{ user: AuthUser; disabled: boolean } | null>>();
+
 export async function authenticateFirebaseIdToken(
-  idToken: string
+  idToken: string,
+  fallbackProfile?: { name?: string }
 ): Promise<{ user: AuthUser; disabled: boolean } | null> {
   if (!idToken) return null;
 
@@ -106,95 +109,141 @@ export async function authenticateFirebaseIdToken(
   const email = (decoded.email || '').toLowerCase();
   if (!uid || !email) return null;
 
-  const rtdbUser = await fetchFirebaseUserNode(uid, idToken);
+  const previous = uidSyncLocks.get(uid) || Promise.resolve(null);
+  const current = previous
+    .catch(() => null)
+    .then(async (): Promise<{ user: AuthUser; disabled: boolean } | null> => {
+      const { node: rtdbUser, lookupOk } = await fetchFirebaseUserNode(uid, idToken);
 
-  // Resolve authoritative role from trusted Firebase RTDB node or Firebase custom claims (never frontend input)
-  const resolvedRole = normalizeRole(rtdbUser?.role ?? decoded.role);
-  const resolvedStatus = normalizeStatus(rtdbUser?.status);
-  const isActive = resolvedStatus === 'active';
+      const fallbackName = sanitizeText(fallbackProfile?.name, 120);
+      const displayName =
+        sanitizeText(rtdbUser?.profile?.name, 120) ||
+        sanitizeText(decoded.name, 120) ||
+        fallbackName ||
+        email.split('@')[0] ||
+        'Client User';
+      const phone = sanitizeText(rtdbUser?.profile?.phone, 40);
+      const company = sanitizeText(rtdbUser?.profile?.company, 120);
 
-  const displayName =
-    sanitizeText(rtdbUser?.profile?.name, 120) ||
-    sanitizeText(decoded.name, 120) ||
-    email.split('@')[0] ||
-    'Client User';
-  const phone = sanitizeText(rtdbUser?.profile?.phone, 40);
-  const company = sanitizeText(rtdbUser?.profile?.company, 120);
+      let userId = 0;
+      let resolvedRole: UserRole = 'client';
+      let isActive = true;
 
-  // Sync verified Firebase user into local relational SQLite index for business records
-  let existing = db
-    .prepare('SELECT id, name, phone, company FROM users WHERE firebase_uid = ?')
-    .get(uid) as { id: number; name: string; phone: string; company: string } | undefined;
+      db.exec('BEGIN IMMEDIATE;');
+      try {
+        let existing = db
+          .prepare('SELECT id, name, phone, company, is_active FROM users WHERE firebase_uid = ?')
+          .get(uid) as
+          | { id: number; name: string; phone: string; company: string; is_active: number }
+          | undefined;
 
-  if (!existing) {
-    existing = db
-      .prepare('SELECT id, name, phone, company FROM users WHERE lower(email) = ?')
-      .get(email) as { id: number; name: string; phone: string; company: string } | undefined;
+        if (!existing) {
+          existing = db
+            .prepare('SELECT id, name, phone, company, is_active FROM users WHERE lower(email) = ?')
+            .get(email) as
+            | { id: number; name: string; phone: string; company: string; is_active: number }
+            | undefined;
+        }
+
+        if (rtdbUser) {
+          resolvedRole = normalizeRole(rtdbUser.role ?? decoded.role);
+          isActive = normalizeStatus(rtdbUser.status) === 'active';
+        } else if (existing) {
+          // Preserve existing SQLite role & status when RTDB node is unavailable or not yet initialized
+          const existingRoles = db
+            .prepare('SELECT role FROM user_roles WHERE user_id = ?')
+            .all(existing.id) as { role: UserRole }[];
+          const fallbackRole =
+            existingRoles.length > 0 ? resolveHighestRole(existingRoles.map((r) => r.role)) : 'client';
+          resolvedRole = decoded.role ? normalizeRole(decoded.role) : fallbackRole;
+          isActive = lookupOk && !existingRoles.length ? true : Boolean(existing.is_active);
+        } else {
+          resolvedRole = normalizeRole(decoded.role);
+          isActive = true;
+        }
+
+        if (!existing) {
+          const ins = db
+            .prepare(`
+              INSERT INTO users (firebase_uid, name, email, phone, company, password_hash, email_verified, is_active)
+              VALUES (?, ?, ?, ?, ?, '', 0, ?)
+            `)
+            .run(uid, displayName, email, phone, company, isActive ? 1 : 0);
+          userId = Number(ins.lastInsertRowid);
+        } else {
+          userId = existing.id;
+          db.prepare(`
+            UPDATE users
+            SET firebase_uid = ?,
+                name = COALESCE(NULLIF(?, ''), name),
+                email = ?,
+                phone = COALESCE(NULLIF(?, ''), phone),
+                company = COALESCE(NULLIF(?, ''), company),
+                is_active = ?,
+                updated_at = datetime('now')
+            WHERE id = ?
+          `).run(uid, displayName, email, phone, company, isActive ? 1 : 0, userId);
+        }
+
+        // Enforce resolved authoritative role in SQLite user_roles
+        db.prepare('DELETE FROM user_roles WHERE user_id = ?').run(userId);
+        db.prepare('INSERT INTO user_roles (user_id, role) VALUES (?, ?)').run(userId, resolvedRole);
+
+        if (resolvedRole === 'client') {
+          db.prepare(`INSERT OR IGNORE INTO clients (user_id, company_name, phone) VALUES (?, ?, ?)`).run(
+            userId,
+            company,
+            phone
+          );
+        }
+
+        // Automatically link any earlier guest inquiries submitted with this email
+        db.prepare(`UPDATE inquiries SET client_user_id = ? WHERE lower(email) = ? AND client_user_id IS NULL`).run(
+          userId,
+          email
+        );
+
+        db.exec('COMMIT;');
+      } catch (err) {
+        try {
+          db.exec('ROLLBACK;');
+        } catch {
+          // Ignore rollback error
+        }
+        throw err;
+      }
+
+      if (!isActive) {
+        return {
+          disabled: true,
+          user: {
+            id: userId,
+            firebaseUid: uid,
+            name: displayName,
+            email,
+            phone,
+            company,
+            isActive: false,
+            status: 'disabled',
+            roles: [resolvedRole],
+            primaryRole: resolvedRole,
+          },
+        };
+      }
+
+      const user = loadUserById(userId);
+      if (!user) return null;
+      return { user, disabled: false };
+    });
+
+  uidSyncLocks.set(uid, current);
+  try {
+    return await current;
+  } finally {
+    if (uidSyncLocks.get(uid) === current) {
+      uidSyncLocks.delete(uid);
+    }
   }
-
-  let userId: number;
-  if (!existing) {
-    const ins = db
-      .prepare(`
-        INSERT INTO users (firebase_uid, name, email, phone, company, password_hash, email_verified, is_active)
-        VALUES (?, ?, ?, ?, ?, '', 0, ?)
-      `)
-      .run(uid, displayName, email, phone, company, isActive ? 1 : 0);
-    userId = Number(ins.lastInsertRowid);
-  } else {
-    userId = existing.id;
-    db.prepare(`
-      UPDATE users
-      SET firebase_uid = ?,
-          name = COALESCE(NULLIF(?, ''), name),
-          email = ?,
-          phone = COALESCE(NULLIF(?, ''), phone),
-          company = COALESCE(NULLIF(?, ''), company),
-          is_active = ?,
-          updated_at = datetime('now')
-      WHERE id = ?
-    `).run(uid, displayName, email, phone, company, isActive ? 1 : 0, userId);
-  }
-
-  // Always enforce authoritative Firebase role in SQLite user_roles
-  db.prepare('DELETE FROM user_roles WHERE user_id = ?').run(userId);
-  db.prepare('INSERT INTO user_roles (user_id, role) VALUES (?, ?)').run(userId, resolvedRole);
-
-  if (resolvedRole === 'client') {
-    db.prepare(`INSERT OR IGNORE INTO clients (user_id, company_name, phone) VALUES (?, ?, ?)`).run(
-      userId,
-      company,
-      phone
-    );
-  }
-
-  // Automatically link any earlier guest inquiries submitted with this email
-  db.prepare(`UPDATE inquiries SET client_user_id = ? WHERE lower(email) = ? AND client_user_id IS NULL`).run(
-    userId,
-    email
-  );
-
-  if (!isActive) {
-    return {
-      disabled: true,
-      user: {
-        id: userId,
-        firebaseUid: uid,
-        name: displayName,
-        email,
-        phone,
-        company,
-        isActive: false,
-        status: 'disabled',
-        roles: [resolvedRole],
-        primaryRole: resolvedRole,
-      },
-    };
-  }
-
-  const user = loadUserById(userId);
-  if (!user) return null;
-  return { user, disabled: false };
 }
 
 export function extractBearerOrCookieToken(req: Request): string | null {

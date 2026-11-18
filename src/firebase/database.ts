@@ -21,6 +21,7 @@ export async function ensureInitialClientNode(uid: string, profile: FirebaseUser
   const userRef = ref(firebaseDb, `users/${uid}`);
   const snap = await get(userRef);
   if (!snap.exists()) {
+    const now = new Date().toISOString();
     await set(userRef, {
       profile: {
         name: profile.name,
@@ -30,7 +31,8 @@ export async function ensureInitialClientNode(uid: string, profile: FirebaseUser
       },
       role: 'client',
       status: 'active',
-      createdAt: new Date().toISOString(),
+      createdAt: now,
+      updatedAt: now,
     });
   }
 }

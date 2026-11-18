@@ -32,13 +32,14 @@ An independent, founder-led full-stack software development team platform and pr
 
 ---
 
-## Local Development & Production
+## Local Development & Hostinger Production
 
 ```bash
 npm install
 npm run lint
 npm run build
-npm run dev
+npm start   # Runs "tsx server.ts" in production (Node.js >= 22)
 ```
 
-Environment variables are documented in `.env.example`. Never commit `.env`, service account JSON credentials, or `storage/` database files.
+For local development with Vite middleware, run `npm run dev`.
+Configure `STORAGE_DIR` in Hostinger environment variables if you mount a persistent storage folder outside deployment releases so `platform.db` and `uploads/` survive redeployments. Environment variables are documented in `.env.example`. Never commit `.env`, service account JSON credentials, or `storage/` database files.

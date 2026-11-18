@@ -266,12 +266,16 @@ export function AdminFeature({ activeModule, onSelectModule, onNavigate }: Admin
                       <select
                         value={inq.status}
                         onChange={async (e) => {
-                          await apiFetch(`/api/admin/inquiries/${inq.id}`, {
-                            method: 'PATCH',
-                            body: JSON.stringify({ status: e.target.value, adminNotes: inq.admin_notes || '' }),
-                          });
-                          showToast(`Inquiry ${inq.inquiry_code} updated.`);
-                          await loadAll();
+                          try {
+                            await apiFetch(`/api/admin/inquiries/${inq.id}`, {
+                              method: 'PATCH',
+                              body: JSON.stringify({ status: e.target.value, adminNotes: inq.admin_notes || '' }),
+                            });
+                            showToast(`Inquiry ${inq.inquiry_code} updated.`);
+                            await loadAll();
+                          } catch (err) {
+                            showToast(err instanceof Error ? err.message : 'Unable to update inquiry.', 'error');
+                          }
                         }}
                         className="min-h-[38px] px-3 rounded-lg bg-[#0B0D11] border border-[#2B3140] text-xs text-white"
                       >
@@ -293,12 +297,16 @@ export function AdminFeature({ activeModule, onSelectModule, onNavigate }: Admin
                         <button
                           type="button"
                           onClick={async () => {
-                            const res = await apiFetch<{ projectCode: string }>(
-                              `/api/admin/inquiries/${inq.id}/convert`,
-                              { method: 'POST', body: JSON.stringify({}) }
-                            );
-                            showToast(`Converted to Project ${res.projectCode}.`);
-                            await loadAll();
+                            try {
+                              const res = await apiFetch<{ projectCode: string }>(
+                                `/api/admin/inquiries/${inq.id}/convert`,
+                                { method: 'POST', body: JSON.stringify({}) }
+                              );
+                              showToast(`Converted to Project ${res.projectCode}.`);
+                              await loadAll();
+                            } catch (err) {
+                              showToast(err instanceof Error ? err.message : 'Conversion failed.', 'error');
+                            }
                           }}
                           className="min-h-[38px] px-3.5 py-1.5 rounded-lg bg-[#ED1C24] hover:bg-[#B81D24] text-white text-xs font-semibold inline-flex items-center gap-1.5"
                         >
@@ -352,13 +360,17 @@ export function AdminFeature({ activeModule, onSelectModule, onNavigate }: Admin
           <form
             onSubmit={async (e) => {
               e.preventDefault();
-              await apiFetch('/api/admin/projects', {
-                method: 'POST',
-                body: JSON.stringify(projectForm),
-              });
-              setProjectForm({ title: '', description: '', clientUserId: '', expectedDeliveryDate: '' });
-              showToast('Project initialized.');
-              await loadAll();
+              try {
+                await apiFetch('/api/admin/projects', {
+                  method: 'POST',
+                  body: JSON.stringify(projectForm),
+                });
+                setProjectForm({ title: '', description: '', clientUserId: '', expectedDeliveryDate: '' });
+                showToast('Project initialized.');
+                await loadAll();
+              } catch (err) {
+                showToast(err instanceof Error ? err.message : 'Failed to create project.', 'error');
+              }
             }}
             className="bg-[#13161D] border border-[#262B38] rounded-lg p-5 space-y-4"
           >
@@ -411,18 +423,22 @@ export function AdminFeature({ activeModule, onSelectModule, onNavigate }: Admin
           <form
             onSubmit={async (e) => {
               e.preventDefault();
-              await apiFetch(`/api/workspace/projects/${milestoneForm.projectId}/milestones`, {
-                method: 'POST',
-                body: JSON.stringify({
-                  title: milestoneForm.title,
-                  description: milestoneForm.description,
-                  dueDate: milestoneForm.dueDate,
-                  amountInr: Number(milestoneForm.amountInr || 0),
-                }),
-              });
-              setMilestoneForm({ projectId: '', title: '', description: '', dueDate: '', amountInr: '' });
-              showToast('Milestone added.');
-              await loadAll();
+              try {
+                await apiFetch(`/api/workspace/projects/${milestoneForm.projectId}/milestones`, {
+                  method: 'POST',
+                  body: JSON.stringify({
+                    title: milestoneForm.title,
+                    description: milestoneForm.description,
+                    dueDate: milestoneForm.dueDate,
+                    amountInr: Number(milestoneForm.amountInr || 0),
+                  }),
+                });
+                setMilestoneForm({ projectId: '', title: '', description: '', dueDate: '', amountInr: '' });
+                showToast('Milestone added.');
+                await loadAll();
+              } catch (err) {
+                showToast(err instanceof Error ? err.message : 'Failed to add milestone.', 'error');
+              }
             }}
             className="bg-[#13161D] border border-[#262B38] rounded-lg p-5 space-y-4"
           >
@@ -488,12 +504,16 @@ export function AdminFeature({ activeModule, onSelectModule, onNavigate }: Admin
                 <select
                   value={prj.status}
                   onChange={async (e) => {
-                    await apiFetch(`/api/admin/projects/${prj.id}`, {
-                      method: 'PATCH',
-                      body: JSON.stringify({ status: e.target.value }),
-                    });
-                    showToast('Project status updated.');
-                    await loadAll();
+                    try {
+                      await apiFetch(`/api/admin/projects/${prj.id}`, {
+                        method: 'PATCH',
+                        body: JSON.stringify({ status: e.target.value }),
+                      });
+                      showToast('Project status updated.');
+                      await loadAll();
+                    } catch (err) {
+                      showToast(err instanceof Error ? err.message : 'Unable to update project status.', 'error');
+                    }
                   }}
                   className="min-h-[40px] px-3 rounded-lg bg-[#0B0D11] border border-[#2B3140] text-xs text-white"
                 >
@@ -526,26 +546,30 @@ export function AdminFeature({ activeModule, onSelectModule, onNavigate }: Admin
           <form
             onSubmit={async (e) => {
               e.preventDefault();
-              await apiFetch('/api/admin/team', {
-                method: 'POST',
-                body: JSON.stringify({
-                  ...teamForm,
-                  userId: teamForm.userId ? Number(teamForm.userId) : null,
-                  skills: teamForm.skillsCsv.split(',').map((s) => s.trim()).filter(Boolean),
-                  responsibilities: teamForm.responsibilitiesCsv.split(',').map((s) => s.trim()).filter(Boolean),
-                }),
-              });
-              setTeamForm({
-                name: '',
-                designation: '',
-                roleCategory: 'Full-Stack Developer',
-                bio: '',
-                skillsCsv: '',
-                responsibilitiesCsv: '',
-                userId: '',
-              });
-              showToast('Team member profile added.');
-              await Promise.all([loadAll(), refreshPublicData()]);
+              try {
+                await apiFetch('/api/admin/team', {
+                  method: 'POST',
+                  body: JSON.stringify({
+                    ...teamForm,
+                    userId: teamForm.userId ? Number(teamForm.userId) : null,
+                    skills: teamForm.skillsCsv.split(',').map((s) => s.trim()).filter(Boolean),
+                    responsibilities: teamForm.responsibilitiesCsv.split(',').map((s) => s.trim()).filter(Boolean),
+                  }),
+                });
+                setTeamForm({
+                  name: '',
+                  designation: '',
+                  roleCategory: 'Full-Stack Developer',
+                  bio: '',
+                  skillsCsv: '',
+                  responsibilitiesCsv: '',
+                  userId: '',
+                });
+                showToast('Team member profile added.');
+                await Promise.all([loadAll(), refreshPublicData()]);
+              } catch (err) {
+                showToast(err instanceof Error ? err.message : 'Unable to save team member.', 'error');
+              }
             }}
             className="bg-[#13161D] border border-[#262B38] rounded-lg p-5 space-y-4"
           >
@@ -628,11 +652,15 @@ export function AdminFeature({ activeModule, onSelectModule, onNavigate }: Admin
                 <button
                   type="button"
                   onClick={async () => {
-                    await apiFetch(`/api/admin/team/${m.id}`, {
-                      method: 'PATCH',
-                      body: JSON.stringify({ isActive: !m.isActive }),
-                    });
-                    await Promise.all([loadAll(), refreshPublicData()]);
+                    try {
+                      await apiFetch(`/api/admin/team/${m.id}`, {
+                        method: 'PATCH',
+                        body: JSON.stringify({ isActive: !m.isActive }),
+                      });
+                      await Promise.all([loadAll(), refreshPublicData()]);
+                    } catch (err) {
+                      showToast(err instanceof Error ? err.message : 'Unable to update team member.', 'error');
+                    }
                   }}
                   className="min-h-[38px] px-3 py-1.5 rounded-lg border border-[#333333] text-xs text-white"
                 >
@@ -681,12 +709,16 @@ export function AdminFeature({ activeModule, onSelectModule, onNavigate }: Admin
         <form
           onSubmit={async (e) => {
             e.preventDefault();
-            await apiFetch('/api/admin/settings', {
-              method: 'PUT',
-              body: JSON.stringify({ settings: settingsForm }),
-            });
-            await refreshPublicData();
-            showToast('Global platform settings saved.');
+            try {
+              await apiFetch('/api/admin/settings', {
+                method: 'PUT',
+                body: JSON.stringify({ settings: settingsForm }),
+              });
+              await refreshPublicData();
+              showToast('Global platform settings saved.');
+            } catch (err) {
+              showToast(err instanceof Error ? err.message : 'Unable to save settings.', 'error');
+            }
           }}
           className="bg-[#13161D] border border-[#262B38] rounded-lg p-5 space-y-4"
         >

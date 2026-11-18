@@ -5,7 +5,7 @@ import fs from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import cookieParser from 'cookie-parser';
 import { ENV } from './server/config/env.ts';
-import { initializeDatabase } from './server/db/database.ts';
+import { initializeDatabase, closeDatabase } from './server/db/database.ts';
 import { attachSessionMiddleware, verifySameOriginForMutations } from './server/middleware/auth.ts';
 import { authRouter } from './server/routes/authRoutes.ts';
 import { publicRouter } from './server/routes/publicRoutes.ts';
@@ -18,6 +18,7 @@ const __dirname = path.dirname(__filename);
 initializeDatabase();
 
 const app = express();
+app.set('trust proxy', 1);
 const server = http.createServer(app);
 
 // Security response headers
@@ -55,13 +56,24 @@ app.use('/api/auth', authRouter);
 app.use('/api/public', publicRouter);
 app.use('/api', workspaceRouter);
 
-// API error handler
-app.use('/api', (err: unknown, _req: express.Request, res: express.Response, _next: express.NextFunction) => {
-  const message = err instanceof Error ? err.message : 'Internal server error';
-  res.status(400).json({ error: message });
+// API 404 JSON handler (never fall through to SPA HTML)
+app.use('/api', (_req, res) => {
+  res.status(404).json({ error: 'API endpoint not found.' });
 });
 
-// Real-time WebSocket server on port 3000 (/ws)
+// API error handler
+app.use('/api', (err: unknown, _req: express.Request, res: express.Response, _next: express.NextFunction) => {
+  const status =
+    typeof (err as { status?: number })?.status === 'number'
+      ? (err as { status: number }).status
+      : typeof (err as { statusCode?: number })?.statusCode === 'number'
+        ? (err as { statusCode: number }).statusCode
+        : 400;
+  const message = err instanceof Error ? err.message : 'Internal server error';
+  res.status(status).json({ error: message });
+});
+
+// Real-time WebSocket server (/ws)
 attachWebSocketServer(server);
 
 async function setupFrontend(): Promise<void> {
@@ -91,5 +103,26 @@ async function setupFrontend(): Promise<void> {
     console.log(`Sanjay Vaishya Platform listening on port ${ENV.PORT} (${ENV.IS_DEV ? 'development' : 'production'})`);
   });
 }
+
+let shuttingDown = false;
+function shutdown(signal: string): void {
+  if (shuttingDown) return;
+  shuttingDown = true;
+  console.log(`Received ${signal}, shutting down cleanly...`);
+  server.close(() => {
+    closeDatabase();
+    process.exit(0);
+  });
+  if (typeof server.closeAllConnections === 'function') {
+    server.closeAllConnections();
+  }
+  setTimeout(() => {
+    closeDatabase();
+    process.exit(0);
+  }, 3000).unref();
+}
+
+process.on('SIGTERM', () => shutdown('SIGTERM'));
+process.on('SIGINT', () => shutdown('SIGINT'));
 
 setupFrontend();
