@@ -9,6 +9,12 @@ import {
 import { firebaseAuth } from './config';
 import { ensureInitialClientNode } from './database';
 
+let activeAuthFlows = 0;
+
+export function isAuthFlowInProgress(): boolean {
+  return activeAuthFlows > 0;
+}
+
 export async function registerWithFirebaseEmail(
   name: string,
   email: string,
@@ -17,43 +23,54 @@ export async function registerWithFirebaseEmail(
   const cleanName = name.trim();
   const cleanEmail = email.trim().toLowerCase();
 
-  const cred = await createUserWithEmailAndPassword(firebaseAuth, cleanEmail, password);
-  if (cleanName) {
-    await updateProfile(cred.user, { displayName: cleanName });
-  }
-
+  activeAuthFlows += 1;
   try {
-    await ensureInitialClientNode(cred.user.uid, {
-      name: cleanName || cleanEmail.split('@')[0] || 'Client User',
-      email: (cred.user.email || cleanEmail).trim().toLowerCase(),
-    });
-  } catch (err) {
-    const detail = err instanceof Error ? err.message : 'Unable to initialize user profile.';
-    throw new Error(
-      `Account created, but profile initialization failed (${detail}). Please sign in again to finish setup.`
-    );
-  }
+    const cred = await createUserWithEmailAndPassword(firebaseAuth, cleanEmail, password);
+    if (cleanName) {
+      await updateProfile(cred.user, { displayName: cleanName });
+    }
 
-  // Refresh ID token so displayName claims are immediately included for backend verification
-  await cred.user.getIdToken(true);
-  return cred.user;
+    try {
+      await ensureInitialClientNode(cred.user.uid, {
+        name: cleanName || cleanEmail.split('@')[0] || 'Client User',
+        email: (cred.user.email || cleanEmail).trim().toLowerCase(),
+      });
+    } catch (err) {
+      const code = (err as { code?: string })?.code ? ` [${(err as { code?: string }).code}]` : '';
+      const detail = err instanceof Error ? err.message : 'Unable to initialize user profile.';
+      throw new Error(
+        `Account created, but Realtime Database profile creation failed${code}: ${detail}`
+      );
+    }
+
+    // Refresh ID token so displayName claims are immediately included for backend verification
+    await cred.user.getIdToken(true);
+    return cred.user;
+  } finally {
+    activeAuthFlows = Math.max(0, activeAuthFlows - 1);
+  }
 }
 
 export async function loginWithFirebaseEmail(email: string, password: string): Promise<User> {
   const cleanEmail = email.trim().toLowerCase();
-  const cred = await signInWithEmailAndPassword(firebaseAuth, email.trim(), password);
-
-  // Self-heal missing RTDB client node for legacy/interrupted accounts without touching existing nodes
+  activeAuthFlows += 1;
   try {
-    await ensureInitialClientNode(cred.user.uid, {
-      name: cred.user.displayName || cleanEmail.split('@')[0] || 'Client User',
-      email: (cred.user.email || cleanEmail).trim().toLowerCase(),
-    });
-  } catch {
-    // Non-fatal if RTDB node already exists or rules deny non-client write
-  }
+    const cred = await signInWithEmailAndPassword(firebaseAuth, email.trim(), password);
 
-  return cred.user;
+    // Self-heal missing RTDB client node for legacy/interrupted accounts without touching existing nodes
+    try {
+      await ensureInitialClientNode(cred.user.uid, {
+        name: cred.user.displayName || cleanEmail.split('@')[0] || 'Client User',
+        email: (cred.user.email || cleanEmail).trim().toLowerCase(),
+      });
+    } catch {
+      // Non-fatal: backend Admin SDK or SQLite fallback preserves existing user & role
+    }
+
+    return cred.user;
+  } finally {
+    activeAuthFlows = Math.max(0, activeAuthFlows - 1);
+  }
 }
 
 export async function logoutFromFirebase(): Promise<void> {
@@ -68,7 +85,7 @@ export function formatFirebaseAuthError(error: unknown): string {
   const code = (error as { code?: string })?.code || '';
   switch (code) {
     case 'auth/email-already-in-use':
-      return 'An account with this email address already exists.';
+      return 'An account with this email address already exists. Please sign in instead.';
     case 'auth/invalid-email':
       return 'Please enter a valid email address.';
     case 'auth/weak-password':

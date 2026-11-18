@@ -6,6 +6,7 @@ import { fileURLToPath } from 'node:url';
 import cookieParser from 'cookie-parser';
 import { ENV } from './server/config/env.ts';
 import { initializeDatabase, closeDatabase } from './server/db/database.ts';
+import { getFirebaseAdminDiagnostics, validateFirebaseAdminStartup } from './server/firebase/admin.ts';
 import { attachSessionMiddleware, verifySameOriginForMutations } from './server/middleware/auth.ts';
 import { authRouter } from './server/routes/authRoutes.ts';
 import { publicRouter } from './server/routes/publicRoutes.ts';
@@ -16,6 +17,7 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 initializeDatabase();
+validateFirebaseAdminStartup();
 
 const app = express();
 app.set('trust proxy', 1);
@@ -45,9 +47,17 @@ app.use(attachSessionMiddleware);
 
 // Health endpoint
 app.get('/api/health', (_req, res) => {
+  const adminDiag = getFirebaseAdminDiagnostics();
   res.status(200).json({
     status: 'ok',
     timestamp: new Date().toISOString(),
+    firebaseAdmin: {
+      initialized: adminDiag.initialized,
+      hasServiceAccount: adminDiag.hasServiceAccount,
+      mode: adminDiag.mode,
+      projectId: adminDiag.projectId,
+      error: adminDiag.error,
+    },
   });
 });
 

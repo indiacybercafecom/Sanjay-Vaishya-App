@@ -3,6 +3,7 @@
     ".read": false,
     ".write": false,
     "users": {
+      ".indexOn": ["role", "status"],
       "$uid": {
         ".read": "auth != null && (auth.uid === $uid || (root.child('users').child(auth.uid).child('role').val() === 'admin' && root.child('users').child(auth.uid).child('status').val() === 'active') || (root.child('users').child(auth.uid).child('role').val() === 'project_manager' && root.child('users').child(auth.uid).child('status').val() === 'active'))",
         ".write": "auth != null && ((!data.exists() && auth.uid === $uid && newData.child('role').val() === 'client' && newData.child('status').val() === 'active' && newData.hasChildren(['profile', 'role', 'status', 'createdAt'])) || (root.child('users').child(auth.uid).child('role').val() === 'admin' && root.child('users').child(auth.uid).child('status').val() === 'active'))",

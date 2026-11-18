@@ -105,7 +105,7 @@ export function AuthScreens({ mode, onNavigate }: AuthScreensProps) {
     setSubmitting(true);
     try {
       await registerWithFirebaseEmail(regForm.name, regForm.email, regForm.password);
-      const syncedUser = await refreshAuth(true);
+      const syncedUser = await refreshAuth(true, regForm.name.trim());
       if (!syncedUser) {
         setErrorMsg(
           'Your account was created, but session synchronization did not complete. Please sign in to continue.'

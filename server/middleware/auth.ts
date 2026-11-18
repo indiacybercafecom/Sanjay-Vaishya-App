@@ -5,8 +5,11 @@ import { ENV } from '../config/env.ts';
 import {
   verifyFirebaseIdToken,
   fetchFirebaseUserNode,
+  getFirebaseAuthUserEmail,
+  ensureRtdbUserNodeIfMissingAsAdmin,
   normalizeRole,
   normalizeStatus,
+  FirebaseAuthServiceError,
   type UserRole,
   type AccountStatus,
 } from '../firebase/admin.ts';
@@ -26,9 +29,16 @@ export interface AuthUser {
   primaryRole: UserRole;
 }
 
+export interface AuthErrorDetail {
+  status: number;
+  code: string;
+  message: string;
+}
+
 export interface AuthenticatedRequest extends Request {
   authUser?: AuthUser;
   firebaseIdToken?: string;
+  authError?: AuthErrorDetail;
 }
 
 export const SESSION_COOKIE_NAME = 'sv_fb_session';
@@ -102,18 +112,44 @@ export async function authenticateFirebaseIdToken(
   idToken: string,
   fallbackProfile?: { name?: string }
 ): Promise<{ user: AuthUser; disabled: boolean } | null> {
-  if (!idToken) return null;
+  if (!idToken) {
+    throw new FirebaseAuthServiceError('Missing Firebase ID token.', 401, 'auth/missing-token');
+  }
 
   const decoded = await verifyFirebaseIdToken(idToken);
   const uid = decoded.uid;
-  const email = (decoded.email || '').toLowerCase();
-  if (!uid || !email) return null;
+  if (!uid) {
+    throw new FirebaseAuthServiceError('Decoded Firebase token is missing user UID.', 401, 'auth/invalid-uid');
+  }
 
   const previous = uidSyncLocks.get(uid) || Promise.resolve(null);
   const current = previous
     .catch(() => null)
     .then(async (): Promise<{ user: AuthUser; disabled: boolean } | null> => {
-      const { node: rtdbUser, lookupOk } = await fetchFirebaseUserNode(uid, idToken);
+      const rtdbResult = await fetchFirebaseUserNode(uid, idToken);
+      if (!rtdbResult.lookupOk && !ENV.IS_DEV) {
+        throw new FirebaseAuthServiceError(
+          rtdbResult.error || 'Unable to query user profile from Firebase Realtime Database.',
+          rtdbResult.statusCode || 502,
+          'rtdb/lookup-failed'
+        );
+      }
+      if (!rtdbResult.lookupOk && rtdbResult.error) {
+        console.warn(`[AUTH DEV WARNING] RTDB lookup degraded for uid=${uid}: ${rtdbResult.error}`);
+      }
+
+      const rtdbUser = rtdbResult.node;
+      let email = (decoded.email || rtdbUser?.profile?.email || '').trim().toLowerCase();
+      if (!email) {
+        email = await getFirebaseAuthUserEmail(uid);
+      }
+      if (!email) {
+        throw new FirebaseAuthServiceError(
+          'Your Firebase account does not have an email address associated with it.',
+          400,
+          'auth/missing-email'
+        );
+      }
 
       const fallbackName = sanitizeText(fallbackProfile?.name, 120);
       const displayName =
@@ -124,6 +160,7 @@ export async function authenticateFirebaseIdToken(
         'Client User';
       const phone = sanitizeText(rtdbUser?.profile?.phone, 40);
       const company = sanitizeText(rtdbUser?.profile?.company, 120);
+      const emailVerifiedInt = decoded.email_verified ? 1 : 0;
 
       let userId = 0;
       let resolvedRole: UserRole = 'client';
@@ -131,34 +168,64 @@ export async function authenticateFirebaseIdToken(
 
       db.exec('BEGIN IMMEDIATE;');
       try {
-        let existing = db
-          .prepare('SELECT id, name, phone, company, is_active FROM users WHERE firebase_uid = ?')
+        const byUid = db
+          .prepare('SELECT id, firebase_uid, name, email, phone, company, is_active FROM users WHERE firebase_uid = ?')
           .get(uid) as
-          | { id: number; name: string; phone: string; company: string; is_active: number }
+          | {
+              id: number;
+              firebase_uid: string | null;
+              name: string;
+              email: string;
+              phone: string;
+              company: string;
+              is_active: number;
+            }
           | undefined;
 
-        if (!existing) {
-          existing = db
-            .prepare('SELECT id, name, phone, company, is_active FROM users WHERE lower(email) = ?')
-            .get(email) as
-            | { id: number; name: string; phone: string; company: string; is_active: number }
-            | undefined;
+        const byEmail = db
+          .prepare('SELECT id, firebase_uid, name, email, phone, company, is_active FROM users WHERE lower(email) = ?')
+          .get(email) as
+          | {
+              id: number;
+              firebase_uid: string | null;
+              name: string;
+              email: string;
+              phone: string;
+              company: string;
+              is_active: number;
+            }
+          | undefined;
+
+        const existing = byUid || byEmail;
+        const hasEmailCollision = Boolean(byUid && byEmail && byUid.id !== byEmail.id);
+
+        const existingRoles = existing
+          ? (db.prepare('SELECT role FROM user_roles WHERE user_id = ?').all(existing.id) as { role: UserRole }[]).map(
+              (r) => r.role
+            )
+          : [];
+        const highestExistingRole = existingRoles.length > 0 ? resolveHighestRole(existingRoles) : null;
+        const rtdbRole = rtdbUser?.role ? normalizeRole(rtdbUser.role) : null;
+        const claimRole = decoded.role ? normalizeRole(decoded.role) : null;
+
+        // Preserve manually assigned admin roles across SQLite, Firebase Custom Claims, and RTDB — never downgrade admin to client
+        if (rtdbRole === 'admin' || claimRole === 'admin' || existingRoles.includes('admin')) {
+          resolvedRole = 'admin';
+        } else if (rtdbRole) {
+          resolvedRole = rtdbRole;
+        } else if (claimRole) {
+          resolvedRole = claimRole;
+        } else if (highestExistingRole) {
+          resolvedRole = highestExistingRole;
+        } else {
+          resolvedRole = 'client';
         }
 
-        if (rtdbUser) {
-          resolvedRole = normalizeRole(rtdbUser.role ?? decoded.role);
+        if (rtdbUser?.status !== undefined) {
           isActive = normalizeStatus(rtdbUser.status) === 'active';
         } else if (existing) {
-          // Preserve existing SQLite role & status when RTDB node is unavailable or not yet initialized
-          const existingRoles = db
-            .prepare('SELECT role FROM user_roles WHERE user_id = ?')
-            .all(existing.id) as { role: UserRole }[];
-          const fallbackRole =
-            existingRoles.length > 0 ? resolveHighestRole(existingRoles.map((r) => r.role)) : 'client';
-          resolvedRole = decoded.role ? normalizeRole(decoded.role) : fallbackRole;
-          isActive = lookupOk && !existingRoles.length ? true : Boolean(existing.is_active);
+          isActive = Boolean(existing.is_active);
         } else {
-          resolvedRole = normalizeRole(decoded.role);
           isActive = true;
         }
 
@@ -166,12 +233,13 @@ export async function authenticateFirebaseIdToken(
           const ins = db
             .prepare(`
               INSERT INTO users (firebase_uid, name, email, phone, company, password_hash, email_verified, is_active)
-              VALUES (?, ?, ?, ?, ?, '', 0, ?)
+              VALUES (?, ?, ?, ?, ?, '', ?, ?)
             `)
-            .run(uid, displayName, email, phone, company, isActive ? 1 : 0);
+            .run(uid, displayName, email, phone, company, emailVerifiedInt, isActive ? 1 : 0);
           userId = Number(ins.lastInsertRowid);
         } else {
           userId = existing.id;
+          const nextEmail = hasEmailCollision ? existing.email : email;
           db.prepare(`
             UPDATE users
             SET firebase_uid = ?,
@@ -179,13 +247,20 @@ export async function authenticateFirebaseIdToken(
                 email = ?,
                 phone = COALESCE(NULLIF(?, ''), phone),
                 company = COALESCE(NULLIF(?, ''), company),
+                email_verified = CASE WHEN ? = 1 THEN 1 ELSE email_verified END,
                 is_active = ?,
                 updated_at = datetime('now')
             WHERE id = ?
-          `).run(uid, displayName, email, phone, company, isActive ? 1 : 0, userId);
+          `).run(uid, displayName, nextEmail, phone, company, emailVerifiedInt, isActive ? 1 : 0, userId);
+
+          if (hasEmailCollision) {
+            console.warn(
+              `[AUTH SYNC WARNING] Duplicate SQLite email detected (${email}); preserved UID-matched user id=${userId} without overwriting email.`
+            );
+          }
         }
 
-        // Enforce resolved authoritative role in SQLite user_roles
+        // Synchronize resolved authoritative role in SQLite user_roles
         db.prepare('DELETE FROM user_roles WHERE user_id = ?').run(userId);
         db.prepare('INSERT INTO user_roles (user_id, role) VALUES (?, ?)').run(userId, resolvedRole);
 
@@ -210,7 +285,22 @@ export async function authenticateFirebaseIdToken(
         } catch {
           // Ignore rollback error
         }
-        throw err;
+        const dbMessage = err instanceof Error ? err.message : 'Database synchronization error';
+        throw new FirebaseAuthServiceError(
+          `Failed to synchronize user account with backend database: ${dbMessage}`,
+          500,
+          'auth/sqlite-sync-failed'
+        );
+      }
+
+      // If user has no RTDB node yet and Admin SDK is available, safely initialize it with their resolved role (never overwriting existing nodes)
+      if (!rtdbUser && rtdbResult.lookupOk) {
+        await ensureRtdbUserNodeIfMissingAsAdmin(
+          uid,
+          { name: displayName, email, phone, company },
+          resolvedRole,
+          isActive ? 'active' : 'disabled'
+        );
       }
 
       if (!isActive) {
@@ -232,7 +322,13 @@ export async function authenticateFirebaseIdToken(
       }
 
       const user = loadUserById(userId);
-      if (!user) return null;
+      if (!user) {
+        throw new FirebaseAuthServiceError(
+          'User account was synchronized but could not be reloaded from SQLite.',
+          500,
+          'auth/user-reload-failed'
+        );
+      }
       return { user, disabled: false };
     });
 
@@ -246,17 +342,18 @@ export async function authenticateFirebaseIdToken(
   }
 }
 
-export function extractBearerOrCookieToken(req: Request): string | null {
+export function extractBearerOrCookieToken(req: Request): { token: string | null; source: 'bearer' | 'cookie' | null } {
   const authHeader = req.headers.authorization;
   if (typeof authHeader === 'string' && authHeader.startsWith('Bearer ')) {
     const token = authHeader.slice(7).trim();
-    if (token) return token;
+    if (token) return { token, source: 'bearer' };
   }
   const signedCookie = req.cookies?.[SESSION_COOKIE_NAME] as string | undefined;
   if (signedCookie) {
-    return verifySignedToken(signedCookie);
+    const verified = verifySignedToken(signedCookie);
+    if (verified) return { token: verified, source: 'cookie' };
   }
-  return null;
+  return { token: null, source: null };
 }
 
 export async function attachSessionMiddleware(
@@ -264,7 +361,13 @@ export async function attachSessionMiddleware(
   res: Response,
   next: NextFunction
 ): Promise<void> {
-  const token = extractBearerOrCookieToken(req);
+  // /api/auth/session performs direct verification & synchronization with request body profile context
+  if (req.path === '/api/auth/session' && req.method === 'POST') {
+    next();
+    return;
+  }
+
+  const { token, source } = extractBearerOrCookieToken(req);
   if (!token) {
     next();
     return;
@@ -273,8 +376,14 @@ export async function attachSessionMiddleware(
   try {
     const result = await authenticateFirebaseIdToken(token);
     if (result?.disabled) {
+      if (source === 'cookie') {
+        res.clearCookie(SESSION_COOKIE_NAME, { path: '/' });
+      }
       if (req.path.startsWith('/api/')) {
-        res.status(403).json({ error: 'This account is disabled. Contact Sanjay Vaishya.' });
+        res.status(403).json({
+          error: 'This account is disabled. Contact Sanjay Vaishya.',
+          code: 'auth/user-disabled',
+        });
         return;
       }
       next();
@@ -284,19 +393,33 @@ export async function attachSessionMiddleware(
       req.authUser = result.user;
       req.firebaseIdToken = token;
     }
-  } catch {
-    // Expired or invalid Firebase token — leave unauthenticated so requireAuth triggers 401
+  } catch (err) {
+    const status = err instanceof FirebaseAuthServiceError ? err.statusCode : 401;
+    const code = err instanceof FirebaseAuthServiceError ? err.code : 'auth/verification-failed';
+    const message = err instanceof Error ? err.message : 'Firebase authentication failed.';
+    req.authError = { status, code, message };
+
+    if (source === 'cookie' && status === 401) {
+      res.clearCookie(SESSION_COOKIE_NAME, { path: '/' });
+    }
+    if (status >= 500) {
+      console.error(`[AUTH MIDDLEWARE ${status}] ${req.method} ${req.path} (${code}): ${message}`);
+    }
   }
   next();
 }
 
 export function requireAuth(req: AuthenticatedRequest, res: Response, next: NextFunction): void {
   if (!req.authUser) {
-    res.status(401).json({ error: 'Authentication required' });
+    if (req.authError) {
+      res.status(req.authError.status).json({ error: req.authError.message, code: req.authError.code });
+      return;
+    }
+    res.status(401).json({ error: 'Authentication required', code: 'auth/unauthenticated' });
     return;
   }
   if (!req.authUser.isActive) {
-    res.status(403).json({ error: 'Account disabled' });
+    res.status(403).json({ error: 'Account disabled', code: 'auth/user-disabled' });
     return;
   }
   next();
@@ -305,16 +428,20 @@ export function requireAuth(req: AuthenticatedRequest, res: Response, next: Next
 export function requireRole(...allowedRoles: UserRole[]) {
   return (req: AuthenticatedRequest, res: Response, next: NextFunction): void => {
     if (!req.authUser) {
-      res.status(401).json({ error: 'Authentication required' });
+      if (req.authError) {
+        res.status(req.authError.status).json({ error: req.authError.message, code: req.authError.code });
+        return;
+      }
+      res.status(401).json({ error: 'Authentication required', code: 'auth/unauthenticated' });
       return;
     }
     if (!req.authUser.isActive) {
-      res.status(403).json({ error: 'Account disabled' });
+      res.status(403).json({ error: 'Account disabled', code: 'auth/user-disabled' });
       return;
     }
     const hasMatch = req.authUser.roles.some((r) => allowedRoles.includes(r));
     if (!hasMatch) {
-      res.status(403).json({ error: 'Insufficient permissions for this resource' });
+      res.status(403).json({ error: 'Insufficient permissions for this resource', code: 'auth/forbidden' });
       return;
     }
     next();

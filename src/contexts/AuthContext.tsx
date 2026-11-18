@@ -1,7 +1,7 @@
 import React, { createContext, useContext, useState, useEffect, useCallback, useRef } from 'react';
 import { onIdTokenChanged, type User as FirebaseUser } from 'firebase/auth';
 import { firebaseAuth } from '../firebase/config';
-import { logoutFromFirebase } from '../firebase/auth';
+import { isAuthFlowInProgress, logoutFromFirebase } from '../firebase/auth';
 import { subscribeToUserNode } from '../firebase/database';
 import { apiFetch } from '../lib/api';
 import type {
@@ -37,7 +37,7 @@ interface AuthContextValue {
   wsSocket: WebSocket | null;
   toast: ToastState | null;
   showToast: (message: string, type?: 'info' | 'error') => void;
-  refreshAuth: (forceTokenRefresh?: boolean) => Promise<AuthUser | null>;
+  refreshAuth: (forceTokenRefresh?: boolean, fallbackName?: string) => Promise<AuthUser | null>;
   refreshPublicData: () => Promise<void>;
   refreshNotifications: () => Promise<void>;
   logout: () => Promise<void>;
@@ -114,7 +114,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const syncBackendSession = useCallback(
-    async (fbUser: FirebaseUser | null, forceTokenRefresh = false): Promise<AuthUser | null> => {
+    async (
+      fbUser: FirebaseUser | null,
+      forceTokenRefresh = false,
+      fallbackName?: string
+    ): Promise<AuthUser | null> => {
       if (!fbUser) {
         lastSyncedTokenRef.current = null;
         lastRtdbSignatureRef.current = null;
@@ -124,7 +128,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }
 
       if (inFlightSyncRef.current) {
-        if (!forceTokenRefresh) {
+        if (!forceTokenRefresh && !fallbackName) {
           return inFlightSyncRef.current;
         }
         await inFlightSyncRef.current.catch(() => null);
@@ -134,10 +138,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         try {
           const idToken = await fbUser.getIdToken(forceTokenRefresh);
           const currentUser = userRef.current;
-          if (!forceTokenRefresh && lastSyncedTokenRef.current === idToken && currentUser?.firebaseUid === fbUser.uid) {
+          if (
+            !forceTokenRefresh &&
+            !fallbackName &&
+            lastSyncedTokenRef.current === idToken &&
+            currentUser?.firebaseUid === fbUser.uid
+          ) {
             return currentUser;
           }
 
+          const resolvedName = (fallbackName || fbUser.displayName || '').trim();
           const res = await fetch('/api/auth/session', {
             method: 'POST',
             credentials: 'include',
@@ -145,28 +155,51 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
               'Content-Type': 'application/json',
               Authorization: `Bearer ${idToken}`,
             },
-            body: JSON.stringify({ name: fbUser.displayName || '' }),
+            body: JSON.stringify({ name: resolvedName }),
           });
 
-          const payload = (await res.json().catch(() => ({}))) as {
+          const rawText = await res.text().catch(() => '');
+          let payload: {
             authenticated?: boolean;
             user?: AuthUser | null;
             error?: string;
-          };
+            code?: string;
+          } = {};
+          if (rawText) {
+            try {
+              payload = JSON.parse(rawText) as typeof payload;
+            } catch {
+              payload = {};
+            }
+          }
 
           if (res.status === 403) {
             lastSyncedTokenRef.current = null;
-            setAccountDisabledError(payload.error || 'This account has been disabled.');
+            const disabledMsg = payload.error || 'This account has been disabled.';
             await logoutFromFirebase();
             setUser(null);
+            if (forceTokenRefresh) {
+              throw new Error(disabledMsg);
+            }
+            setAccountDisabledError(disabledMsg);
             return null;
           }
 
           if (!res.ok || !payload.user) {
             lastSyncedTokenRef.current = null;
             setUser(null);
+            const fallbackHttpText =
+              rawText && !rawText.trim().startsWith('<') ? rawText.trim().slice(0, 220) : '';
+            const detailedError =
+              payload.error ||
+              fallbackHttpText ||
+              `Backend session synchronization failed (HTTP ${res.status}).`;
+            console.error('[AuthContext] /api/auth/session failed:', res.status, payload.code || '', detailedError);
             if (forceTokenRefresh) {
-              throw new Error(payload.error || 'Unable to synchronize session with backend server.');
+              throw new Error(detailedError);
+            }
+            if (res.status >= 500) {
+              showToast(detailedError, 'error');
             }
             return null;
           }
@@ -179,6 +212,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           if (forceTokenRefresh) {
             throw err instanceof Error ? err : new Error('Session synchronization failed.');
           }
+          console.error('[AuthContext] Session sync exception:', err);
           setUser(null);
           return null;
         } finally {
@@ -191,12 +225,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       inFlightSyncRef.current = promise;
       return promise;
     },
-    []
+    [showToast]
   );
 
   const refreshAuth = useCallback(
-    async (forceTokenRefresh = false): Promise<AuthUser | null> => {
-      return syncBackendSession(firebaseAuth.currentUser, forceTokenRefresh);
+    async (forceTokenRefresh = false, fallbackName?: string): Promise<AuthUser | null> => {
+      return syncBackendSession(firebaseAuth.currentUser, forceTokenRefresh, fallbackName);
     },
     [syncBackendSession]
   );
@@ -217,6 +251,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         setUser(null);
         setNotifications([]);
         setAuthLoading(false);
+        return;
+      }
+      // Wait for explicit refreshAuth(true) when registerWithFirebaseEmail / loginWithFirebaseEmail is mid-setup
+      if (isAuthFlowInProgress()) {
         return;
       }
       await syncBackendSession(fbUser, false);
