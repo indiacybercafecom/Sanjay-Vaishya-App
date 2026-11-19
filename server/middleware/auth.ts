@@ -7,6 +7,7 @@ import {
   fetchFirebaseUserNode,
   getFirebaseAuthUserEmail,
   ensureRtdbUserNodeIfMissingAsAdmin,
+  syncFirebaseUserClaims,
   normalizeRole,
   normalizeStatus,
   FirebaseAuthServiceError,
@@ -110,7 +111,7 @@ const uidSyncLocks = new Map<string, Promise<{ user: AuthUser; disabled: boolean
 
 export async function authenticateFirebaseIdToken(
   idToken: string,
-  fallbackProfile?: { name?: string }
+  options?: { name?: string; allowMissingRtdbCreation?: boolean }
 ): Promise<{ user: AuthUser; disabled: boolean } | null> {
   if (!idToken) {
     throw new FirebaseAuthServiceError('Missing Firebase ID token.', 401, 'auth/missing-token');
@@ -151,7 +152,7 @@ export async function authenticateFirebaseIdToken(
         );
       }
 
-      const fallbackName = sanitizeText(fallbackProfile?.name, 120);
+      const fallbackName = sanitizeText(options?.name, 120);
       const displayName =
         sanitizeText(rtdbUser?.profile?.name, 120) ||
         sanitizeText(decoded.name, 120) ||
@@ -199,6 +200,16 @@ export async function authenticateFirebaseIdToken(
         const existing = byUid || byEmail;
         const hasEmailCollision = Boolean(byUid && byEmail && byUid.id !== byEmail.id);
 
+        // If the user previously had a linked Firebase account and RTDB lookup succeeded but their RTDB node was deleted,
+        // prevent stale privilege escalation / ghost session unless explicitly re-syncing via /api/auth/session.
+        if (rtdbResult.lookupOk && !rtdbUser && existing?.firebase_uid === uid && !options?.allowMissingRtdbCreation) {
+          throw new FirebaseAuthServiceError(
+            'Your Firebase user profile node is missing or was removed. Please sign in again.',
+            401,
+            'auth/user-node-missing'
+          );
+        }
+
         const existingRoles = existing
           ? (db.prepare('SELECT role FROM user_roles WHERE user_id = ?').all(existing.id) as { role: UserRole }[]).map(
               (r) => r.role
@@ -208,11 +219,14 @@ export async function authenticateFirebaseIdToken(
         const rtdbRole = rtdbUser?.role ? normalizeRole(rtdbUser.role) : null;
         const claimRole = decoded.role ? normalizeRole(decoded.role) : null;
 
-        // Preserve manually assigned admin roles across SQLite, Firebase Custom Claims, and RTDB — never downgrade admin to client
-        if (rtdbRole === 'admin' || claimRole === 'admin' || existingRoles.includes('admin')) {
-          resolvedRole = 'admin';
-        } else if (rtdbRole) {
+        // Authoritative role resolution:
+        // 1. Firebase RTDB (`users/{uid}/role`) is ALWAYS authoritative when present (supports both promotions and downgrades)
+        // 2. If RTDB node has no role yet: fall back to Firebase custom claim, then existing SQLite role ONLY when RTDB lookup failed
+        if (rtdbRole) {
           resolvedRole = rtdbRole;
+        } else if (rtdbResult.lookupOk && !rtdbUser) {
+          // Missing RTDB node resets role to 'client' (never preserves stale elevated roles)
+          resolvedRole = 'client';
         } else if (claimRole) {
           resolvedRole = claimRole;
         } else if (highestExistingRole) {
@@ -293,8 +307,13 @@ export async function authenticateFirebaseIdToken(
         );
       }
 
-      // If user has no RTDB node yet and Admin SDK is available, safely initialize it with their resolved role (never overwriting existing nodes)
-      if (!rtdbUser && rtdbResult.lookupOk) {
+      // Keep Firebase custom claims aligned with authoritative RTDB role when Admin SDK is active
+      if (rtdbUser && decoded.role !== resolvedRole) {
+        await syncFirebaseUserClaims(uid, resolvedRole);
+      }
+
+      // If user has no RTDB node yet and Admin SDK is available on explicit session init, initialize it cleanly as client
+      if (!rtdbUser && rtdbResult.lookupOk && options?.allowMissingRtdbCreation) {
         await ensureRtdbUserNodeIfMissingAsAdmin(
           uid,
           { name: displayName, email, phone, company },

@@ -252,7 +252,7 @@ export async function verifyFirebaseIdToken(idToken: string): Promise<DecodedIdT
   }
 
   try {
-    return await adminAuthInstance.verifyIdToken(idToken);
+    return await adminAuthInstance.verifyIdToken(idToken, hasServiceAccount);
   } catch (err) {
     const code = (err as { code?: string })?.code || 'auth/verification-failed';
     const rawMsg = err instanceof Error ? err.message : 'Firebase ID token verification failed.';
@@ -424,6 +424,37 @@ export async function ensureRtdbUserNodeIfMissingAsAdmin(
     console.error(`Admin RTDB initial profile healing failed for users/${uid}:`, err);
     return false;
   }
+}
+
+export async function syncFirebaseUserClaims(uid: string, role: UserRole): Promise<void> {
+  if (!hasServiceAccount || !adminAuthInstance) return;
+  try {
+    await adminAuthInstance.setCustomUserClaims(uid, { role });
+  } catch (err) {
+    console.warn(`Unable to sync custom claims for uid=${uid}:`, err instanceof Error ? err.message : err);
+  }
+}
+
+export async function deleteFirebaseUserAccount(uid: string): Promise<{ rtdbDeleted: boolean; authDeleted: boolean }> {
+  let rtdbDeleted = false;
+  let authDeleted = false;
+  if (hasServiceAccount && adminAppInstance) {
+    try {
+      await getDatabase(adminAppInstance).ref(`users/${uid}`).remove();
+      rtdbDeleted = true;
+    } catch (err) {
+      console.error(`Failed to delete RTDB node users/${uid}:`, err);
+    }
+  }
+  if (hasServiceAccount && adminAuthInstance) {
+    try {
+      await adminAuthInstance.deleteUser(uid);
+      authDeleted = true;
+    } catch (err) {
+      console.error(`Failed to delete Firebase Auth user ${uid}:`, err);
+    }
+  }
+  return { rtdbDeleted, authDeleted };
 }
 
 export function normalizeRole(rawRole: unknown): UserRole {

@@ -1,8 +1,9 @@
 {
-  "name": "react-example",
+  "name": "sanjay-vaishya-platform",
   "private": true,
-  "version": "0.0.0",
+  "version": "1.0.0",
   "type": "module",
+  "main": "server.ts",
   "scripts": {
     "dev": "NODE_ENV=development tsx server.ts",
     "build": "vite build",
@@ -16,15 +17,10 @@
   },
   "dependencies": {
     "@google/genai": "^1.29.0",
-    "@tailwindcss/vite": "^4.1.14",
-    "@types/cookie-parser": "^1.4.10",
-    "@types/multer": "^2.3.0",
-    "@types/ws": "^8.18.2",
-    "@vitejs/plugin-react": "^5.0.4",
     "cookie-parser": "^1.4.7",
     "dotenv": "^17.2.3",
     "express": "^4.21.2",
-    "firebase": "^13.4.0",
+    "firebase": "12.12.0",
     "firebase-admin": "^14.5.1",
     "jspdf": "^4.2.1",
     "lucide-react": "^0.546.0",
@@ -33,16 +29,24 @@
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
     "tsx": "^4.21.0",
-    "vite": "^6.2.0",
-    "vite-plugin-pwa": "^2.0.0",
     "ws": "^8.23.0"
   },
   "devDependencies": {
+    "@tailwindcss/vite": "^4.1.14",
+    "@types/cookie-parser": "^1.4.10",
+    "@types/express": "^4.17.21",
+    "@types/multer": "^2.3.0",
     "@types/node": "^22.14.0",
+    "@types/ws": "^8.18.2",
+    "@vitejs/plugin-react": "^5.0.4",
     "autoprefixer": "^10.4.21",
     "tailwindcss": "^4.1.14",
     "typescript": "~5.8.2",
     "vite": "^6.2.0",
-    "@types/express": "^4.17.21"
+    "vite-plugin-pwa": "^2.0.0"
+  },
+  "overrides": {
+    "@firebase/database": "1.1.5",
+    "@firebase/database-compat": "2.1.5"
   }
 }

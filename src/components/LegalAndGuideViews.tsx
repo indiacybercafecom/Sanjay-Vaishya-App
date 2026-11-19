@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   ArrowLeft,
   Mail,
@@ -13,9 +13,13 @@ import {
   Terminal,
   FolderOpen,
   Cloud,
+  CheckCircle2,
+  Trash2,
 } from 'lucide-react';
 import ResilientImage from './ResilientImage';
 import heroHpcImg from '../assets/images/hero_hpc_server_1795003573637.jpg';
+import { useAuth } from '../contexts/AuthContext';
+import { apiFetch } from '../lib/api';
 
 interface BackHeaderProps {
   title: string;
@@ -316,70 +320,290 @@ export function TermsView({ onBack }: { onBack: () => void }) {
   );
 }
 
-interface DeleteDataViewProps {
+export function DeleteDataView({
+  onBack,
+  onNavigate,
+}: {
   onBack: () => void;
-  deleteOptions: {
-    contactData: boolean;
-    usageLogs: boolean;
-    personalInfo: boolean;
-    other: boolean;
-  };
-  onToggleOption: (key: 'contactData' | 'usageLogs' | 'personalInfo' | 'other') => void;
-  onSendRequest: () => void;
-}
+  onNavigate?: (path: string) => void;
+}) {
+  const { user, logout, showToast } = useAuth();
+  const [email, setEmail] = useState(user?.email || '');
+  const [notes, setNotes] = useState('');
+  const [selectedCategories, setSelectedCategories] = useState<string[]>([
+    'Contact Form & Inquiry Data',
+    'Personal Profile Information',
+  ]);
+  const [submittingRequest, setSubmittingRequest] = useState(false);
+  const [submittedReceipt, setSubmittedReceipt] = useState<{ requestCode: string; status: string } | null>(null);
 
-export function DeleteDataView({ onBack, deleteOptions, onToggleOption, onSendRequest }: DeleteDataViewProps) {
-  const options: { id: 'contactData' | 'usageLogs' | 'personalInfo' | 'other'; label: string }[] = [
-    { id: 'contactData', label: 'Contact Form Data' },
-    { id: 'usageLogs', label: 'App Usage Logs' },
-    { id: 'personalInfo', label: 'Personal Information' },
-    { id: 'other', label: 'Other Data' },
+  const [confirmAccountDelete, setConfirmAccountDelete] = useState(false);
+  const [accountDeleteReason, setAccountDeleteReason] = useState('');
+  const [deletingAccount, setDeletingAccount] = useState(false);
+  const [errorMsg, setErrorMsg] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (user?.email) {
+      setEmail((prev) => prev || user.email);
+    }
+  }, [user]);
+
+  const categories = [
+    'Contact Form & Inquiry Data',
+    'Personal Profile Information',
+    'Uploaded Files & Attachments',
+    'App Usage Logs',
+    'Other Workspace Data',
   ];
+
+  const toggleCategory = (cat: string) => {
+    setSelectedCategories((prev) => (prev.includes(cat) ? prev.filter((item) => item !== cat) : [...prev, cat]));
+  };
+
+  const handleSubmitCategoryRequest = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (submittingRequest) return;
+    setErrorMsg(null);
+
+    if (!email.trim() || !email.includes('@')) {
+      setErrorMsg('Enter the email address associated with your account or inquiry.');
+      return;
+    }
+    if (selectedCategories.length === 0) {
+      setErrorMsg('Select at least one data category to remove.');
+      return;
+    }
+
+    setSubmittingRequest(true);
+    try {
+      const data = await apiFetch<{ requestCode: string; status: string }>('/api/public/data-deletion-requests', {
+        method: 'POST',
+        body: JSON.stringify({
+          email: email.trim(),
+          categories: selectedCategories,
+          notes: notes.trim(),
+        }),
+      });
+      setSubmittedReceipt({ requestCode: data.requestCode, status: data.status });
+      showToast(`Deletion request ${data.requestCode} logged.`);
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : 'Unable to submit deletion request.';
+      setErrorMsg(msg);
+      showToast(msg, 'error');
+    } finally {
+      setSubmittingRequest(false);
+    }
+  };
+
+  const handleOpenEmailFallback = () => {
+    const body = encodeURIComponent(
+      `Hello Sanjay Vaishya Team,\n\nPlease delete the following data associated with my email (${email || '[Enter Email]'}):\n- ${selectedCategories.join(
+        '\n- '
+      )}\n\nAdditional details: ${notes || 'None'}\n`
+    );
+    window.location.href = `mailto:sanjayvaishya.dev@gmail.com?subject=Data%20Deletion%20Request&body=${body}`;
+  };
+
+  const handleDeleteOwnAccount = async () => {
+    if (deletingAccount || !user) return;
+    setErrorMsg(null);
+    setDeletingAccount(true);
+    try {
+      const res = await apiFetch<{ requestCode: string; status: string }>('/api/auth/delete-account', {
+        method: 'POST',
+        body: JSON.stringify({ reason: accountDeleteReason.trim() }),
+      });
+      showToast(`Account deleted (${res.requestCode}). Signing out...`);
+      await logout();
+      if (onNavigate) onNavigate('/');
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : 'Unable to delete account.';
+      setErrorMsg(msg);
+      showToast(msg, 'error');
+    } finally {
+      setDeletingAccount(false);
+      setConfirmAccountDelete(false);
+    }
+  };
+
+  const isAdminUser = Boolean(user?.roles.includes('admin'));
 
   return (
     <div className="space-y-8">
-      <SectionBackHeader title="Delete Data Request" onBack={onBack} backLabel="Settings" accent="danger" />
+      <SectionBackHeader title="Account & Data Deletion" onBack={onBack} backLabel="Settings" accent="danger" />
 
-      <div className="max-w-2xl bg-[#13161D] border border-[#262B38] rounded-lg p-6 md:p-8 space-y-6">
-        <div className="space-y-2">
-          <h3 className="text-lg font-bold text-white">Select Data Categories to Delete</h3>
-          <p className="text-sm text-[#CCCCCC]">
-            Choose the categories of records you want removed from our support archives:
-          </p>
-        </div>
-
-        <div className="space-y-3">
-          {options.map((opt) => (
-            <label
-              key={opt.id}
-              className="flex items-center gap-3.5 p-4 bg-[#1A1E28] border border-[#262B38] rounded-lg cursor-pointer hover:border-[#1FA8D6]/50 transition-colors"
-            >
-              <input
-                type="checkbox"
-                checked={deleteOptions[opt.id]}
-                onChange={() => onToggleOption(opt.id)}
-                className="w-4 h-4 rounded border-[#333333] bg-[#0B0D11] text-[#D9252D] focus:ring-2 focus:ring-[#1FA8D6]"
-              />
-              <span className="text-sm font-medium text-white">{opt.label}</span>
-            </label>
-          ))}
-        </div>
-
-        <div className="p-4 bg-[#D9252D]/10 border border-[#D9252D]/40 rounded-lg flex items-start gap-3">
-          <ShieldCheck className="w-4 h-4 text-[#D9252D] shrink-0 mt-0.5" />
-          <p className="text-xs text-[#F4F6F9] leading-relaxed">
-            Clicking below opens your email client with a structured deletion request. Verified requests are processed within 7–10 business days.
-          </p>
-        </div>
-
-        <button
-          type="button"
-          onClick={onSendRequest}
-          className="w-full py-3.5 px-6 bg-[#D9252D] hover:bg-[#B81D24] text-white text-sm font-semibold rounded-lg transition-all duration-200 active:translate-y-px flex items-center justify-center gap-2.5"
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+        <form
+          onSubmit={handleSubmitCategoryRequest}
+          className="lg:col-span-7 bg-[#13161D] border border-[#262B38] rounded-lg p-6 md:p-8 space-y-6"
         >
-          <Send className="w-4 h-4" />
-          Send Deletion Request
-        </button>
+          <div className="space-y-1.5">
+            <p className="font-mono text-xs text-[#00BFFF]">GOOGLE PLAY &amp; PRIVACY COMPLIANCE</p>
+            <h3 className="text-lg font-bold text-white">Submit Data Deletion Request</h3>
+            <p className="text-sm text-[#CCCCCC]">
+              Select the data categories to erase from our project database and support logs. Requests are recorded directly on our server with a tracking code.
+            </p>
+          </div>
+
+          {errorMsg && (
+            <div className="p-3.5 rounded-lg bg-[#ED1C24]/15 border border-[#ED1C24]/50 text-xs text-white">
+              {errorMsg}
+            </div>
+          )}
+
+          {submittedReceipt && (
+            <div className="p-4 rounded-lg bg-[#00CC66]/10 border border-[#00CC66]/40 space-y-1">
+              <p className="font-mono text-xs text-[#00CC66] flex items-center gap-1.5 tabular-nums">
+                <CheckCircle2 className="w-4 h-4 shrink-0" />
+                REQUEST LOGGED: {submittedReceipt.requestCode} ({submittedReceipt.status})
+              </p>
+              <p className="text-xs text-[#F4F6F9]">
+                Your deletion request has been queued for verification and processing within 7–10 business days.
+              </p>
+            </div>
+          )}
+
+          <label className="space-y-1.5 block">
+            <span className="text-xs font-medium text-[#CCCCCC]">Registered / Inquiry Email Address *</span>
+            <input
+              type="email"
+              required
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              placeholder="name@company.com"
+              className="w-full min-h-[44px] px-3.5 rounded-lg bg-[#0B0D11] border border-[#2B3140] text-sm text-white focus:border-[#00BFFF] focus:outline-none"
+            />
+          </label>
+
+          <div className="space-y-2.5">
+            <span className="text-xs font-medium text-[#CCCCCC] block">Data Categories *</span>
+            {categories.map((cat) => (
+              <label
+                key={cat}
+                className="flex items-center gap-3.5 p-3.5 bg-[#1A1E28] border border-[#262B38] rounded-lg cursor-pointer hover:border-[#00BFFF]/50 transition-colors"
+              >
+                <input
+                  type="checkbox"
+                  checked={selectedCategories.includes(cat)}
+                  onChange={() => toggleCategory(cat)}
+                  className="w-4 h-4 rounded border-[#333333] bg-[#0B0D11] text-[#ED1C24] focus:ring-2 focus:ring-[#00BFFF]"
+                />
+                <span className="text-sm font-medium text-white">{cat}</span>
+              </label>
+            ))}
+          </div>
+
+          <label className="space-y-1.5 block">
+            <span className="text-xs font-medium text-[#CCCCCC]">Additional Notes / Inquiry Code (Optional)</span>
+            <textarea
+              rows={2}
+              value={notes}
+              onChange={(e) => setNotes(e.target.value)}
+              placeholder="Optional reference IDs (e.g. INQ-2026-XXXX) or context..."
+              className="w-full px-3.5 py-2.5 rounded-lg bg-[#0B0D11] border border-[#2B3140] text-sm text-white focus:border-[#00BFFF] focus:outline-none"
+            />
+          </label>
+
+          <div className="flex flex-wrap gap-3">
+            <button
+              type="submit"
+              disabled={submittingRequest}
+              className="flex-1 min-w-[200px] min-h-[44px] py-3 px-5 bg-[#ED1C24] hover:bg-[#B81D24] disabled:opacity-60 text-white text-sm font-semibold rounded-lg transition-colors flex items-center justify-center gap-2"
+            >
+              <Send className="w-4 h-4" />
+              {submittingRequest ? 'Submitting Request...' : 'Submit Deletion Request'}
+            </button>
+            <button
+              type="button"
+              onClick={handleOpenEmailFallback}
+              className="min-h-[44px] py-3 px-4 border border-[#2B3140] hover:border-[#00BFFF] text-xs font-medium text-[#CCCCCC] hover:text-white rounded-lg inline-flex items-center justify-center gap-2"
+            >
+              <Mail className="w-3.5 h-3.5 text-[#00BFFF]" />
+              Email Copy
+            </button>
+          </div>
+        </form>
+
+        <div className="lg:col-span-5 space-y-5">
+          <div className="bg-[#13161D] border border-[#262B38] rounded-lg p-6 space-y-4">
+            <div className="flex items-center gap-2 text-[#ED1C24]">
+              <Trash2 className="w-4 h-4" />
+              <h3 className="text-base font-bold text-white">Self-Service Account Deletion</h3>
+            </div>
+            {!user ? (
+              <div className="space-y-3">
+                <p className="text-xs text-[#CCCCCC] leading-relaxed">
+                  Want to immediately delete your signed-in client account along with your Firebase Authentication and Realtime Database profile? Sign in first to use instant self-service deletion.
+                </p>
+                {onNavigate && (
+                  <button
+                    type="button"
+                    onClick={() => onNavigate('/login')}
+                    className="w-full min-h-[42px] px-4 py-2 rounded-lg border border-[#2B3140] hover:border-[#00BFFF] text-xs font-medium text-white"
+                  >
+                    Sign In to Manage Account
+                  </button>
+                )}
+              </div>
+            ) : isAdminUser ? (
+              <p className="text-xs text-[#CCCCCC] leading-relaxed">
+                Administrator accounts are protected against accidental self-deletion here. Update your role in Firebase Console before removing administrative accounts.
+              </p>
+            ) : (
+              <div className="space-y-3">
+                <p className="text-xs text-[#CCCCCC] leading-relaxed">
+                  Signed in as <span className="text-white font-semibold">{user.email}</span>. Self-service deletion permanently anonymizes your portal profile and revokes your Firebase login immediately.
+                </p>
+                <input
+                  type="text"
+                  value={accountDeleteReason}
+                  onChange={(e) => setAccountDeleteReason(e.target.value)}
+                  placeholder="Optional reason for leaving"
+                  className="w-full min-h-[40px] px-3 rounded-lg bg-[#0B0D11] border border-[#2B3140] text-xs text-white"
+                />
+                {!confirmAccountDelete ? (
+                  <button
+                    type="button"
+                    onClick={() => setConfirmAccountDelete(true)}
+                    className="w-full min-h-[42px] px-4 py-2 rounded-lg border border-[#ED1C24]/50 text-[#ED1C24] hover:bg-[#ED1C24]/10 text-xs font-semibold"
+                  >
+                    Delete My Account Permanently
+                  </button>
+                ) : (
+                  <div className="p-3.5 rounded-lg bg-[#ED1C24]/10 border border-[#ED1C24]/50 space-y-3">
+                    <p className="text-xs text-white font-medium">
+                      Confirm permanent account deletion? This signs you out and cannot be undone.
+                    </p>
+                    <div className="flex gap-2">
+                      <button
+                        type="button"
+                        disabled={deletingAccount}
+                        onClick={handleDeleteOwnAccount}
+                        className="flex-1 min-h-[38px] px-3 py-1.5 rounded-lg bg-[#ED1C24] hover:bg-[#B81D24] text-white text-xs font-semibold"
+                      >
+                        {deletingAccount ? 'Deleting...' : 'Confirm Delete'}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setConfirmAccountDelete(false)}
+                        className="min-h-[38px] px-3 py-1.5 rounded-lg border border-[#2B3140] text-xs text-[#CCCCCC]"
+                      >
+                        Cancel
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+
+          <div className="bg-[#13161D] border border-[#262B38] rounded-lg p-5 flex items-start gap-3">
+            <ShieldCheck className="w-4 h-4 text-[#00BFFF] shrink-0 mt-0.5" />
+            <p className="text-xs text-[#CCCCCC] leading-relaxed">
+              Statutory billing records (verified invoices) may be retained as required by Indian tax law while personal contact data and credentials are erased.
+            </p>
+          </div>
+        </div>
       </div>
     </div>
   );

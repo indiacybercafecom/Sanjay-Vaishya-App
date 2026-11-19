@@ -113,9 +113,41 @@ export default function InquiryPage({ preselectedCategory, onNavigate }: Inquiry
   };
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const selected = Array.from(e.target.files || []);
-    const combined = [...files, ...selected].slice(0, 3);
-    setFiles(combined);
+    const allowedExt = new Set(['.pdf', '.png', '.jpg', '.jpeg', '.webp', '.txt', '.zip', '.docx']);
+    const maxBytes = 10 * 1024 * 1024;
+    const selected: File[] = e.target.files ? Array.from(e.target.files) : [];
+    const accepted: File[] = [];
+    const warnings: string[] = [];
+
+    for (const file of selected) {
+      const dotIdx = file.name.lastIndexOf('.');
+      const ext = dotIdx >= 0 ? file.name.slice(dotIdx).toLowerCase() : '';
+      if (!allowedExt.has(ext)) {
+        warnings.push(`${file.name}: unsupported extension (use PDF, PNG, JPG, WEBP, TXT, ZIP, or DOCX).`);
+        continue;
+      }
+      if (file.size > maxBytes) {
+        warnings.push(`${file.name}: exceeds 10 MB limit.`);
+        continue;
+      }
+      accepted.push(file);
+    }
+
+    const remainingSlots = Math.max(0, 3 - files.length);
+    if (accepted.length > remainingSlots) {
+      warnings.push('Up to 3 attachments may be uploaded per inquiry.');
+    }
+
+    const nextFiles = [...files, ...accepted].slice(0, 3);
+    setFiles(nextFiles);
+
+    if (warnings.length > 0) {
+      const msg = warnings[0];
+      setErrorMsg(msg);
+      showToast(msg, 'error');
+    } else {
+      setErrorMsg(null);
+    }
     e.target.value = '';
   };
 

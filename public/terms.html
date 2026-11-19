@@ -1,112 +1,133 @@
 <!DOCTYPE html>
 <html lang="en" class="dark">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Terms & Conditions - Sanjay Vaishya App</title>
-    <link rel="icon" href="https://indiacybercafe.com/wp-content/uploads/2026/03/sanjay_siteicon.png">
-    <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Manrope:wght@800&display=swap" rel="stylesheet">
-    <link href="https://fonts.googleapis.com/icon?family=Material+Icons+Round" rel="stylesheet">
-    <script>
-        tailwind.config = {
-            darkMode: 'class',
-            theme: {
-                extend: {
-                    fontFamily: {
-                        headline: ['Manrope', 'sans-serif'],
-                        sans: ['Inter', 'sans-serif'],
-                    },
-                }
-            }
-        }
-    </script>
-    <style>
-        body { font-family: 'Inter', sans-serif; background-color: #0e0e0e; color: #ffffff; }
-        .font-headline { font-family: 'Manrope', sans-serif; }
-        ::-webkit-scrollbar { display: none; }
-    </style>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Terms &amp; Conditions — SANJAY VAISHYA</title>
+  <link rel="icon" type="image/svg+xml" href="/icon.svg" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600&family=Roboto:wght@400;500;700&display=swap" rel="stylesheet" />
+  <style>
+    :root { color-scheme: dark; }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: "Roboto", system-ui, -apple-system, sans-serif;
+      background-color: #0B0D11;
+      color: #F4F6F9;
+      line-height: 1.65;
+      min-height: 100vh;
+    }
+    .mono { font-family: "JetBrains Mono", monospace; }
+    header {
+      position: sticky;
+      top: 0;
+      z-index: 20;
+      background: rgba(11, 13, 17, 0.92);
+      backdrop-filter: blur(12px);
+      border-bottom: 1px solid #262B38;
+      padding: 14px 24px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+    }
+    .brand { font-weight: 700; font-size: 16px; color: #FFFFFF; text-decoration: none; letter-spacing: -0.02em; }
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      padding: 8px 16px;
+      border-radius: 8px;
+      font-size: 12px;
+      font-weight: 600;
+      text-decoration: none;
+      border: 1px solid #2B3140;
+      color: #F4F6F9;
+      background: #13161D;
+    }
+    .btn:hover { border-color: #00BFFF; }
+    main { max-width: 920px; margin: 0 auto; padding: 36px 20px 64px; }
+    .kicker { font-size: 12px; color: #00BFFF; margin-bottom: 6px; }
+    h1 { font-size: 28px; font-weight: 700; color: #FFFFFF; margin-bottom: 8px; }
+    .lead { font-size: 14px; color: #CCCCCC; margin-bottom: 28px; }
+    .card {
+      background: #13161D;
+      border: 1px solid #262B38;
+      border-radius: 10px;
+      padding: 28px;
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 24px;
+    }
+    section h2 { font-size: 16px; color: #FFFFFF; margin-bottom: 8px; }
+    section p { font-size: 14px; color: #CCCCCC; }
+    a { color: #00BFFF; }
+    footer { text-align: center; padding: 28px 16px; border-top: 1px solid #262B38; font-size: 12px; color: #C0C0C0; }
+  </style>
 </head>
-<body class="min-h-screen bg-white dark:bg-[#0e0e0e] text-gray-900 dark:text-white transition-colors duration-500">
-    
-    <!-- Header -->
-    <header class="sticky top-0 z-50 backdrop-blur-2xl bg-white/80 dark:bg-[#0e0e0e]/80 border-b border-gray-100 dark:border-white/5 px-6 py-4 flex items-center justify-between transition-all duration-500 shadow-sm dark:shadow-none">
-        <div class="flex items-center gap-3">
-            <img src="https://indiacybercafe.com/wp-content/uploads/2026/03/sanjay_siteicon.png" alt="Logo" class="w-10 h-10 rounded-full border-2 border-[#834fff]" />
-            <div>
-                <h1 class="font-headline font-extrabold text-lg leading-tight tracking-tight">Sanjay Vaishya</h1>
-                <p class="text-[10px] font-bold text-[#834fff] uppercase tracking-widest leading-none">Developer</p>
-            </div>
-        </div>
-        <a href="/" class="w-10 h-10 rounded-full bg-gray-100 dark:bg-white/5 flex items-center justify-center text-gray-500 dark:text-gray-400 active:scale-90 transition-all hover:bg-gray-200 dark:hover:bg-white/10">
-            <span class="material-icons-round text-xl">home</span>
-        </a>
-    </header>
+<body>
+  <header>
+    <a href="/" class="brand">SANJAY VAISHYA</a>
+    <nav style="display:flex;gap:10px;flex-wrap:wrap;">
+      <a href="/terms" class="btn">Interactive Portal</a>
+      <a href="/" class="btn">Home</a>
+    </nav>
+  </header>
 
-    <main class="px-6 py-8 max-w-lg mx-auto space-y-6">
-        <div class="relative flex items-center justify-center min-h-[64px] mb-4 px-4">
-            <a href="/" class="absolute left-0 w-12 h-12 rounded-full bg-gray-100 dark:bg-white/5 flex items-center justify-center text-gray-500 dark:text-gray-400 active:scale-90 transition-all">
-                <span class="material-icons-round">arrow_back</span>
-            </a>
-            <h2 class="font-headline font-extrabold text-2xl">Terms & Conditions</h2>
-        </div>
+  <main>
+    <p class="kicker mono">SANJAY VAISHYA PLATFORM · SERVICE AGREEMENT</p>
+    <h1>Terms &amp; Conditions</h1>
+    <p class="lead">
+      Governing terms for using the SANJAY VAISHYA website, project intake system, client portal, quotations, and software engineering services.
+    </p>
 
-        <div class="backdrop-blur-xl bg-white dark:bg-[#1a1a1a] border border-gray-200 dark:border-white/10 rounded-[32px] p-8 space-y-6 shadow-sm dark:shadow-2xl transition-all duration-500">
-            <div class="prose prose-sm dark:prose-invert max-w-none space-y-6">
-                <section>
-                    <h3 class="text-lg font-bold font-headline">Acceptance of Terms</h3>
-                    <p class="text-sm text-gray-600 dark:text-gray-400 leading-relaxed">
-                        By using the Sanjay Vaishya App, you agree to these Terms & Conditions. If you do not agree, please do not use the app.
-                    </p>
-                </section>
+    <div class="card">
+      <section>
+        <h2>01. Acceptance of Terms</h2>
+        <p>
+          By accessing the SANJAY VAISHYA platform or submitting project inquiries, you agree to these Terms &amp; Conditions and applicable commercial project proposals.
+        </p>
+      </section>
 
-                <section>
-                    <h3 class="text-lg font-bold font-headline">Intellectual Property</h3>
-                    <p class="text-sm text-gray-600 dark:text-gray-400 leading-relaxed">
-                        All content, including text, images, and logos, belongs to <strong>Sanjay Vaishya / India Cyber Cafe</strong>. You may not use it without permission.
-                    </p>
-                </section>
+      <section>
+        <h2>02. Proposals, Milestones &amp; Delivery</h2>
+        <p>
+          Software scope, delivery timelines, and milestone pricing are formally agreed in written quotations issued inside your Client Portal. Source code ownership transfers as specified upon milestone settlement.
+        </p>
+      </section>
 
-                <section>
-                    <h3 class="text-lg font-bold font-headline">User Responsibilities</h3>
-                    <p class="text-sm text-gray-600 dark:text-gray-400 leading-relaxed">
-                        You agree to use the app for lawful purposes only and not to provide false information through our contact forms.
-                    </p>
-                </section>
+      <section>
+        <h2>03. Intellectual Property</h2>
+        <p>
+          Platform source architecture, documentation, and the SANJAY VAISHYA / India Cyber Cafe brand assets remain proprietary unless expressly transferred under a signed client agreement.
+        </p>
+      </section>
 
-                <section>
-                    <h3 class="text-lg font-bold font-headline">Limitation of Liability</h3>
-                    <p class="text-sm text-gray-600 dark:text-gray-400 leading-relaxed">
-                        We provide assistance on an "as-is" basis. We are not liable for any damages resulting from the use or inability to use the app.
-                    </p>
-                </section>
+      <section>
+        <h2>04. User Responsibilities</h2>
+        <p>
+          Users must provide accurate registration details, maintain credential security, refrain from uploading malicious files, and use workspace messaging strictly for lawful project collaboration.
+        </p>
+      </section>
 
-                <section>
-                    <h3 class="text-lg font-bold font-headline">External Links</h3>
-                    <p class="text-sm text-gray-600 dark:text-gray-400 leading-relaxed">
-                        The app contains links to external sites. We are not responsible for the content or privacy practices of those sites.
-                    </p>
-                </section>
+      <section>
+        <h2>05. Third-Party Services</h2>
+        <p>
+          Payment checkout relies on Razorpay and authentication relies on Firebase. Third-party infrastructure providers operate under their respective uptime and service terms.
+        </p>
+      </section>
 
-                <section>
-                    <h3 class="text-lg font-bold font-headline">Governing Law</h3>
-                    <p class="text-sm text-gray-600 dark:text-gray-400 leading-relaxed">
-                        These terms are governed by the laws of <strong>India</strong>. Any disputes will be subject to the jurisdiction of courts in Singrauli, MP.
-                    </p>
-                </section>
+      <section>
+        <h2>06. Governing Law &amp; Contact</h2>
+        <p>
+          These terms are governed by the laws of <strong>India</strong>, subject to the jurisdiction of courts in Singrauli, Madhya Pradesh. Questions: <a href="mailto:sanjayvaishya.dev@gmail.com">sanjayvaishya.dev@gmail.com</a>.
+        </p>
+      </section>
+    </div>
+  </main>
 
-                <section>
-                    <h3 class="text-lg font-bold font-headline">Contact</h3>
-                    <p class="text-sm text-gray-600 dark:text-gray-400 leading-relaxed">
-                        For any queries regarding these terms, email us at <strong>sanjayvaishya.dev@gmail.com</strong>.
-                    </p>
-                </section>
-            </div>
-        </div>
-    </main>
-
-    <footer class="py-12 text-center text-gray-500 text-[10px] font-bold uppercase tracking-widest">
-        <p>&copy; 2026 Sanjay Vaishya. All rights reserved.</p>
-    </footer>
+  <footer>
+    &copy; 2026 SANJAY VAISHYA · Founder-Led Full-Stack Development Team · Singrauli, MP, India
+  </footer>
 </body>
 </html>

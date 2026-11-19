@@ -1,118 +1,128 @@
 <!DOCTYPE html>
 <html lang="en" class="dark">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>About Sanjay Vaishya - Sanjay Vaishya App</title>
-    <link rel="icon" href="https://indiacybercafe.com/wp-content/uploads/2026/03/sanjay_siteicon.png">
-    <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Manrope:wght@800&display=swap" rel="stylesheet">
-    <link href="https://fonts.googleapis.com/icon?family=Material+Icons+Round" rel="stylesheet">
-    <script>
-        tailwind.config = {
-            darkMode: 'class',
-            theme: {
-                extend: {
-                    fontFamily: {
-                        headline: ['Manrope', 'sans-serif'],
-                        sans: ['Inter', 'sans-serif'],
-                    },
-                }
-            }
-        }
-    </script>
-    <style>
-        body { font-family: 'Inter', sans-serif; background-color: #0e0e0e; color: #ffffff; }
-        .font-headline { font-family: 'Manrope', sans-serif; }
-        ::-webkit-scrollbar { display: none; }
-    </style>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>About — SANJAY VAISHYA</title>
+  <link rel="icon" type="image/svg+xml" href="/icon.svg" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600&family=Roboto:wght@400;500;700&display=swap" rel="stylesheet" />
+  <style>
+    :root { color-scheme: dark; }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: "Roboto", system-ui, -apple-system, sans-serif;
+      background-color: #0B0D11;
+      color: #F4F6F9;
+      line-height: 1.65;
+      min-height: 100vh;
+    }
+    .mono { font-family: "JetBrains Mono", monospace; }
+    header {
+      position: sticky;
+      top: 0;
+      z-index: 20;
+      background: rgba(11, 13, 17, 0.92);
+      backdrop-filter: blur(12px);
+      border-bottom: 1px solid #262B38;
+      padding: 14px 24px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+    }
+    .brand { font-weight: 700; font-size: 16px; color: #FFFFFF; text-decoration: none; letter-spacing: -0.02em; }
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      padding: 8px 16px;
+      border-radius: 8px;
+      font-size: 12px;
+      font-weight: 600;
+      text-decoration: none;
+      border: 1px solid #2B3140;
+      color: #F4F6F9;
+      background: #13161D;
+    }
+    .btn-primary { background: #ED1C24; border-color: #ED1C24; color: #FFFFFF; }
+    .btn-primary:hover { background: #B81D24; }
+    main { max-width: 960px; margin: 0 auto; padding: 36px 20px 64px; display: grid; gap: 24px; }
+    .kicker { font-size: 12px; color: #00BFFF; margin-bottom: 6px; }
+    h1 { font-size: 30px; font-weight: 700; color: #FFFFFF; margin-bottom: 10px; }
+    .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 20px; }
+    .card {
+      background: #13161D;
+      border: 1px solid #262B38;
+      border-radius: 10px;
+      padding: 24px;
+      display: grid;
+      gap: 12px;
+    }
+    h2 { font-size: 17px; color: #FFFFFF; }
+    p { font-size: 14px; color: #CCCCCC; }
+    a { color: #00BFFF; }
+    footer { text-align: center; padding: 28px 16px; border-top: 1px solid #262B38; font-size: 12px; color: #C0C0C0; }
+  </style>
 </head>
-<body class="min-h-screen bg-white dark:bg-[#0e0e0e] text-gray-900 dark:text-white transition-colors duration-500">
-    
-    <!-- Header -->
-    <header class="sticky top-0 z-50 backdrop-blur-2xl bg-white/80 dark:bg-[#0e0e0e]/80 border-b border-gray-100 dark:border-white/5 px-6 py-4 flex items-center justify-between transition-all duration-500 shadow-sm dark:shadow-none">
-        <div class="flex items-center gap-3">
-            <img src="https://indiacybercafe.com/wp-content/uploads/2026/03/sanjay_siteicon.png" alt="Logo" class="w-10 h-10 rounded-full border-2 border-[#834fff]" />
-            <div>
-                <h1 class="font-headline font-extrabold text-lg leading-tight tracking-tight">Sanjay Vaishya</h1>
-                <p class="text-[10px] font-bold text-[#834fff] uppercase tracking-widest leading-none">Developer</p>
-            </div>
-        </div>
-        <a href="/" class="w-10 h-10 rounded-full bg-gray-100 dark:bg-white/5 flex items-center justify-center text-gray-500 dark:text-gray-400 active:scale-90 transition-all hover:bg-gray-200 dark:hover:bg-white/10">
-            <span class="material-icons-round text-xl">home</span>
-        </a>
-    </header>
+<body>
+  <header>
+    <a href="/" class="brand">SANJAY VAISHYA</a>
+    <nav style="display:flex;gap:10px;flex-wrap:wrap;">
+      <a href="/start-project" class="btn btn-primary">Start a Project</a>
+      <a href="/" class="btn">Home</a>
+    </nav>
+  </header>
 
-    <main class="px-6 py-8 max-w-lg mx-auto space-y-6">
-        <div class="relative flex items-center justify-center min-h-[64px] mb-4 px-4">
-            <a href="/" class="absolute left-0 w-12 h-12 rounded-full bg-gray-100 dark:bg-white/5 flex items-center justify-center text-gray-500 dark:text-gray-400 active:scale-90 transition-all">
-                <span class="material-icons-round">arrow_back</span>
-            </a>
-            <h2 class="font-headline font-extrabold text-2xl">About Sanjay</h2>
-        </div>
+  <main>
+    <div>
+      <p class="kicker mono">FOUNDER-LED FULL-STACK SOFTWARE DEVELOPMENT TEAM</p>
+      <h1>About Sanjay Vaishya</h1>
+      <p style="font-size:15px;color:#CCCCCC;max-width:72ch;">
+        Sanjay Vaishya is the Founder &amp; Lead Full-Stack Developer behind an independent software engineering team delivering custom web platforms, Android mobile applications, API architectures, UI/UX systems, and production deployments for businesses.
+      </p>
+    </div>
 
-        <div class="backdrop-blur-xl bg-white dark:bg-[#1a1a1a] border border-gray-200 dark:border-white/10 rounded-[32px] p-8 space-y-8 shadow-sm dark:shadow-2xl transition-all duration-500">
-            <div class="relative h-48 rounded-2xl overflow-hidden group">
-                <img src="https://sanjay.indiacybercafe.com/uploads/sanjay/sanjay%20kumar%20vaishya%20hero%20image.png" alt="Sanjay Vaishya" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700" />
-                <div class="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent"></div>
-                <div class="absolute bottom-4 left-4">
-                    <h3 class="text-white font-headline font-bold text-xl">Sanjay Vaishya</h3>
-                    <p class="text-white/80 text-xs font-bold uppercase tracking-widest">Developer & CEO, India Cyber Cafe</p>
-                </div>
-            </div>
-            
-            <div class="space-y-6">
-                <section class="space-y-3">
-                    <h4 class="font-headline font-extrabold text-lg text-[#834fff]">Introduction</h4>
-                    <p class="text-sm leading-relaxed text-gray-600 dark:text-gray-400">
-                        Sanjay Vaishya is a visionary <strong>Developer</strong> and the <strong>CEO of India Cyber Cafe</strong>, based in Jobgarh, Singrauli, Madhya Pradesh. With years of experience in digital services, he has dedicated his career to bridging the digital divide in India.
-                    </p>
-                </section>
+    <div class="grid">
+      <div class="card">
+        <p class="mono" style="font-size:12px;color:#00BFFF;">01. LEADERSHIP</p>
+        <h2>Founder-Led Architecture</h2>
+        <p>
+          Led directly by Sanjay Vaishya (Founder &amp; CEO, India Cyber Cafe, Singrauli, MP), every engagement undergoes architectural planning, milestone decomposition, security verification, and code review before release.
+        </p>
+      </div>
 
-                <section class="space-y-3">
-                    <h4 class="font-headline font-extrabold text-lg text-[#834fff]">About India Cyber Cafe</h4>
-                    <p class="text-sm leading-relaxed text-gray-600 dark:text-gray-400">
-                        India Cyber Cafe is more than just a cafe; it's a digital hub providing essential services like online form filling, technical support, and developer guidance. We empower local communities by making digital tools accessible to everyone.
-                    </p>
-                </section>
+      <div class="card">
+        <p class="mono" style="font-size:12px;color:#ED1C24;">02. COLLABORATIVE TEAM</p>
+        <h2>Multidisciplinary Delivery</h2>
+        <p>
+          Frontend engineers, backend architects, mobile developers, UI/UX designers, and QA specialists collaborate seamlessly inside shared project workspaces rather than siloed handoffs.
+        </p>
+      </div>
 
-                <section class="space-y-3">
-                    <h4 class="font-headline font-extrabold text-lg text-[#834fff]">Purpose of the App</h4>
-                    <p class="text-sm leading-relaxed text-gray-600 dark:text-gray-400">
-                        The <strong>Sanjay Vaishya App</strong> is designed to provide a direct channel for users to seek <strong>FREE assistance</strong>. Whether you need help with digital services, cyber cafe queries, or basic coding guidance, this app is your companion.
-                    </p>
-                </section>
+      <div class="card">
+        <p class="mono" style="font-size:12px;color:#00CC66;">03. PLATFORM WORKFLOW</p>
+        <h2>End-to-End Client Portal</h2>
+        <p>
+          Clients submit project specifications, review structured quotations, collaborate via real-time project channels, settle Razorpay milestones, and download verified PDF invoices from one unified platform.
+        </p>
+      </div>
+    </div>
 
-                <div class="grid grid-cols-2 gap-4 pt-4">
-                    <div class="p-5 bg-[#834fff]/5 rounded-[24px] border border-[#834fff]/10">
-                        <h4 class="font-bold text-[#834fff] mb-1 text-sm">Vision</h4>
-                        <p class="text-[9px] text-gray-500 uppercase tracking-widest font-bold">Digital India for everyone.</p>
-                    </div>
-                    <div class="p-5 bg-[#834fff]/5 rounded-[24px] border border-[#834fff]/10">
-                        <h4 class="font-bold text-[#834fff] mb-1 text-sm">Mission</h4>
-                        <p class="text-[9px] text-gray-500 uppercase tracking-widest font-bold">Empowering through free support.</p>
-                    </div>
-                </div>
+    <div class="card" style="display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:16px;">
+      <div>
+        <h2>Direct Engineering Contact</h2>
+        <p>Jobgarh, Singrauli, Madhya Pradesh, India · <a href="mailto:sanjayvaishya.dev@gmail.com">sanjayvaishya.dev@gmail.com</a> · +91 9203251821</p>
+      </div>
+      <div style="display:flex;gap:10px;flex-wrap:wrap;">
+        <a href="/team" class="btn">Meet the Team</a>
+        <a href="/work" class="btn">Explore Work</a>
+      </div>
+    </div>
+  </main>
 
-                <section class="space-y-3 pt-4">
-                    <h4 class="font-headline font-extrabold text-lg text-[#834fff]">Contact Information</h4>
-                    <div class="space-y-2">
-                        <p class="text-sm text-gray-600 dark:text-gray-400 flex items-center gap-2">
-                            <span class="material-icons-round text-sm">email</span>
-                            sanjayvaishya.dev@gmail.com
-                        </p>
-                        <p class="text-sm text-gray-600 dark:text-gray-400 flex items-center gap-2">
-                            <span class="material-icons-round text-sm">public</span>
-                            sanjay.indiacybercafe.com
-                        </p>
-                    </div>
-                </section>
-            </div>
-        </div>
-    </main>
-
-    <footer class="py-12 text-center text-gray-500 text-[10px] font-bold uppercase tracking-widest">
-        <p>&copy; 2026 Sanjay Vaishya. All rights reserved.</p>
-    </footer>
+  <footer>
+    &copy; 2026 SANJAY VAISHYA · We Design, Develop &amp; Deliver Digital Solutions
+  </footer>
 </body>
 </html>

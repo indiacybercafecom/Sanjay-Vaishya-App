@@ -463,6 +463,18 @@ export function AdminOperationsPanels({
                   items: proposalForm.items,
                 }),
               });
+              setProposalForm({
+                clientUserId: '',
+                inquiryId: '',
+                projectId: '',
+                title: '',
+                scopeSummary: '',
+                timeline: '4-6 weeks',
+                paymentSchedule: '40% Advance, 40% Beta Milestone, 20% Final Delivery',
+                terms: 'Source code & repository ownership transferred upon full milestone completion.',
+                sendNow: true,
+                items: [{ title: 'Core Architecture & Full-Stack Build', description: '', amountInr: 25000 }],
+              });
               showToast(`Proposal ${res.proposalCode} created.`);
               await onReload();
             } catch (err) {
@@ -472,7 +484,7 @@ export function AdminOperationsPanels({
           className="bg-[#13161D] border border-[#262B38] rounded-lg p-5 space-y-4"
         >
           <h2 className="text-base sm:text-lg font-bold text-white">Create Proposal / Quotation</h2>
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
             <select
               required
               value={proposalForm.clientUserId}
@@ -498,6 +510,20 @@ export function AdminOperationsPanels({
                 </option>
               ))}
             </select>
+            <select
+              value={proposalForm.projectId}
+              onChange={(e) => setProposalForm((p) => ({ ...p, projectId: e.target.value }))}
+              className="min-h-[42px] px-3 rounded-lg bg-[#0B0D11] border border-[#2B3140] text-xs text-white"
+            >
+              <option value="">Link Project (Optional)</option>
+              {projects
+                .filter((pr) => !proposalForm.clientUserId || String(pr.client_user_id) === proposalForm.clientUserId)
+                .map((pr) => (
+                  <option key={pr.id} value={pr.id}>
+                    {pr.project_code} · {pr.title}
+                  </option>
+                ))}
+            </select>
             <input
               type="text"
               required
@@ -513,6 +539,29 @@ export function AdminOperationsPanels({
             value={proposalForm.scopeSummary}
             onChange={(e) => setProposalForm((p) => ({ ...p, scopeSummary: e.target.value }))}
             placeholder="Scope & deliverables breakdown..."
+            className="w-full px-3 py-2 rounded-lg bg-[#0B0D11] border border-[#2B3140] text-xs text-white"
+          />
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <input
+              type="text"
+              value={proposalForm.timeline}
+              onChange={(e) => setProposalForm((p) => ({ ...p, timeline: e.target.value }))}
+              placeholder="Estimated Timeline (e.g. 4-6 weeks)"
+              className="min-h-[42px] px-3 rounded-lg bg-[#0B0D11] border border-[#2B3140] text-xs text-white"
+            />
+            <input
+              type="text"
+              value={proposalForm.paymentSchedule}
+              onChange={(e) => setProposalForm((p) => ({ ...p, paymentSchedule: e.target.value }))}
+              placeholder="Payment Schedule"
+              className="min-h-[42px] px-3 rounded-lg bg-[#0B0D11] border border-[#2B3140] text-xs text-white"
+            />
+          </div>
+          <textarea
+            rows={2}
+            value={proposalForm.terms}
+            onChange={(e) => setProposalForm((p) => ({ ...p, terms: e.target.value }))}
+            placeholder="Commercial terms & ownership clauses..."
             className="w-full px-3 py-2 rounded-lg bg-[#0B0D11] border border-[#2B3140] text-xs text-white"
           />
 

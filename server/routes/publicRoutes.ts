@@ -12,6 +12,7 @@ import {
   logAudit,
 } from '../middleware/auth.ts';
 import { sendRealtimeNotification } from '../ws/realtime.ts';
+import { cleanupUploadedFiles, validateUploadedFileSignature } from '../utils/fileValidation.ts';
 
 export const publicRouter = Router();
 
@@ -44,6 +45,7 @@ const upload = multer({
 });
 
 const inquiryRateLimit = rateLimit(10 * 60 * 1000, 12);
+const deletionRateLimit = rateLimit(15 * 60 * 1000, 10);
 
 function safeParseJson<T>(raw: string | null | undefined, fallback: T): T {
   if (!raw) return fallback;
@@ -123,6 +125,7 @@ publicRouter.post(
   inquiryRateLimit,
   upload.array('attachments', 3),
   (req: AuthenticatedRequest, res) => {
+    const files = (req.files as Express.Multer.File[] | undefined) || [];
     const clientName = sanitizeText(req.body?.clientName, 100);
     const email = sanitizeText(req.body?.email, 160).toLowerCase();
     const phone = sanitizeText(req.body?.phone, 40);
@@ -137,8 +140,20 @@ publicRouter.post(
     const referenceUrls = sanitizeText(req.body?.referenceUrls, 500);
 
     if (!clientName || !email || !email.includes('@') || !phone || !projectTitle || !category || !description || !budgetRange || !timeline) {
+      cleanupUploadedFiles(files);
       res.status(400).json({ error: 'Please complete all required project inquiry fields.' });
       return;
+    }
+
+    // Validate actual magic-byte signature for every uploaded attachment
+    for (const file of files) {
+      if (!validateUploadedFileSignature(file.path, file.mimetype)) {
+        cleanupUploadedFiles(files);
+        res.status(400).json({
+          error: `File "${file.originalname}" failed content signature validation for ${file.mimetype}.`,
+        });
+        return;
+      }
     }
 
     // Duplicate inquiry prevention within 10 minutes
@@ -150,6 +165,7 @@ publicRouter.post(
     `).get(email, projectTitle.toLowerCase()) as { inquiry_code: string } | undefined;
 
     if (duplicate) {
+      cleanupUploadedFiles(files);
       res.status(409).json({
         error: `A matching inquiry (${duplicate.inquiry_code}) was already submitted recently.`,
       });
@@ -159,37 +175,50 @@ publicRouter.post(
     const inquiryCode = `INQ-${new Date().getFullYear()}-${crypto.randomBytes(2).toString('hex').toUpperCase()}`;
     const clientUserId = req.authUser?.id || null;
 
-    const result = db.prepare(`
-      INSERT INTO inquiries (
-        inquiry_code, client_user_id, client_name, email, phone, company,
-        project_title, category, description, required_features, preferred_tech,
-        budget_range, timeline, reference_urls, status
-      )
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'New')
-    `).run(
-      inquiryCode,
-      clientUserId,
-      clientName,
-      email,
-      phone,
-      company,
-      projectTitle,
-      category,
-      description,
-      requiredFeatures,
-      preferredTech,
-      budgetRange,
-      timeline,
-      referenceUrls
-    );
+    let inquiryId = 0;
+    db.exec('BEGIN IMMEDIATE;');
+    try {
+      const result = db.prepare(`
+        INSERT INTO inquiries (
+          inquiry_code, client_user_id, client_name, email, phone, company,
+          project_title, category, description, required_features, preferred_tech,
+          budget_range, timeline, reference_urls, status
+        )
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'New')
+      `).run(
+        inquiryCode,
+        clientUserId,
+        clientName,
+        email,
+        phone,
+        company,
+        projectTitle,
+        category,
+        description,
+        requiredFeatures,
+        preferredTech,
+        budgetRange,
+        timeline,
+        referenceUrls
+      );
 
-    const inquiryId = Number(result.lastInsertRowid);
-    const files = (req.files as Express.Multer.File[] | undefined) || [];
-    for (const file of files) {
-      db.prepare(`
-        INSERT INTO attachments (owner_user_id, inquiry_id, original_name, stored_name, mime_type, size_bytes, visibility)
-        VALUES (?, ?, ?, ?, ?, ?, 'private')
-      `).run(clientUserId, inquiryId, file.originalname, file.filename, file.mimetype, file.size);
+      inquiryId = Number(result.lastInsertRowid);
+      for (const file of files) {
+        db.prepare(`
+          INSERT INTO attachments (owner_user_id, inquiry_id, original_name, stored_name, mime_type, size_bytes, visibility)
+          VALUES (?, ?, ?, ?, ?, ?, 'private')
+        `).run(clientUserId, inquiryId, file.originalname, file.filename, file.mimetype, file.size);
+      }
+      db.exec('COMMIT;');
+    } catch (err) {
+      try {
+        db.exec('ROLLBACK;');
+      } catch {
+        // Ignore rollback error
+      }
+      cleanupUploadedFiles(files);
+      res.status(500).json({ error: err instanceof Error ? err.message : 'Unable to save project inquiry.' });
+      return;
     }
 
     const adminIds = notifyAdmins(
@@ -215,3 +244,51 @@ publicRouter.post(
     });
   }
 );
+
+publicRouter.post('/data-deletion-requests', deletionRateLimit, (req: AuthenticatedRequest, res) => {
+  const email = sanitizeText(req.body?.email || req.authUser?.email, 160).toLowerCase();
+  const notes = sanitizeText(req.body?.notes, 2000);
+  const rawCategories = Array.isArray(req.body?.categories) ? req.body.categories : [];
+  const categories = rawCategories
+    .map((c: unknown) => sanitizeText(c, 80))
+    .filter(Boolean)
+    .slice(0, 8);
+
+  if (!email || !email.includes('@')) {
+    res.status(400).json({ error: 'Please provide a valid email address for verification.' });
+    return;
+  }
+  if (categories.length === 0) {
+    res.status(400).json({ error: 'Select at least one data category to delete.' });
+    return;
+  }
+
+  const requestCode = `DEL-${new Date().getFullYear()}-${crypto.randomBytes(2).toString('hex').toUpperCase()}`;
+  const userId = req.authUser?.id || null;
+
+  db.prepare(`
+    INSERT INTO data_deletion_requests (request_code, user_id, email, categories_json, notes, delete_account, status)
+    VALUES (?, ?, ?, ?, ?, 0, 'Pending')
+  `).run(requestCode, userId, email, JSON.stringify(categories), notes);
+
+  const adminIds = notifyAdmins(
+    'data_deletion_requested',
+    `Data Deletion Request: ${requestCode}`,
+    `${email} requested removal of: ${categories.join(', ')}.`,
+    '/admin'
+  );
+  for (const adminId of adminIds) {
+    sendRealtimeNotification(adminId, {
+      type: 'data_deletion_requested',
+      title: `Data Deletion Request: ${requestCode}`,
+      message: `${email} submitted a deletion request.`,
+    });
+  }
+
+  logAudit(userId, 'data_deletion_requested', 'data_deletion_request', requestCode, { email, categories }, req.ip);
+
+  res.status(201).json({
+    requestCode,
+    status: 'Pending',
+  });
+});

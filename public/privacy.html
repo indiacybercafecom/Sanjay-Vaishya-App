@@ -1,123 +1,139 @@
 <!DOCTYPE html>
 <html lang="en" class="dark">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Privacy Policy - Sanjay Vaishya App</title>
-    <link rel="icon" href="https://indiacybercafe.com/wp-content/uploads/2026/03/sanjay_siteicon.png">
-    <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Manrope:wght@800&display=swap" rel="stylesheet">
-    <link href="https://fonts.googleapis.com/icon?family=Material+Icons+Round" rel="stylesheet">
-    <script>
-        tailwind.config = {
-            darkMode: 'class',
-            theme: {
-                extend: {
-                    fontFamily: {
-                        headline: ['Manrope', 'sans-serif'],
-                        sans: ['Inter', 'sans-serif'],
-                    },
-                }
-            }
-        }
-    </script>
-    <style>
-        body { font-family: 'Inter', sans-serif; background-color: #0e0e0e; color: #ffffff; }
-        .font-headline { font-family: 'Manrope', sans-serif; }
-        ::-webkit-scrollbar { display: none; }
-    </style>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Privacy Policy — SANJAY VAISHYA</title>
+  <link rel="icon" type="image/svg+xml" href="/icon.svg" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600&family=Roboto:wght@400;500;700&display=swap" rel="stylesheet" />
+  <style>
+    :root { color-scheme: dark; }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: "Roboto", system-ui, -apple-system, sans-serif;
+      background-color: #0B0D11;
+      color: #F4F6F9;
+      line-height: 1.65;
+      min-height: 100vh;
+    }
+    .mono { font-family: "JetBrains Mono", monospace; }
+    header {
+      position: sticky;
+      top: 0;
+      z-index: 20;
+      background: rgba(11, 13, 17, 0.92);
+      backdrop-filter: blur(12px);
+      border-bottom: 1px solid #262B38;
+      padding: 14px 24px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+    }
+    .brand { font-weight: 700; font-size: 16px; color: #FFFFFF; text-decoration: none; letter-spacing: -0.02em; }
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 16px;
+      border-radius: 8px;
+      font-size: 12px;
+      font-weight: 600;
+      text-decoration: none;
+      border: 1px solid #2B3140;
+      color: #F4F6F9;
+      background: #13161D;
+    }
+    .btn:hover { border-color: #00BFFF; }
+    main { max-width: 920px; margin: 0 auto; padding: 36px 20px 64px; }
+    .kicker { font-size: 12px; color: #00BFFF; margin-bottom: 6px; }
+    h1 { font-size: 28px; font-weight: 700; color: #FFFFFF; margin-bottom: 8px; }
+    .lead { font-size: 14px; color: #CCCCCC; margin-bottom: 28px; }
+    .card {
+      background: #13161D;
+      border: 1px solid #262B38;
+      border-radius: 10px;
+      padding: 28px;
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 24px;
+    }
+    section h2 { font-size: 16px; color: #FFFFFF; margin-bottom: 8px; }
+    section p, section li { font-size: 14px; color: #CCCCCC; }
+    ul { padding-left: 18px; display: grid; gap: 6px; }
+    a { color: #00BFFF; }
+    footer { text-align: center; padding: 28px 16px; border-top: 1px solid #262B38; font-size: 12px; color: #C0C0C0; }
+  </style>
 </head>
-<body class="min-h-screen bg-white dark:bg-[#0e0e0e] text-gray-900 dark:text-white transition-colors duration-500">
-    
-    <!-- Header -->
-    <header class="sticky top-0 z-50 backdrop-blur-2xl bg-white/80 dark:bg-[#0e0e0e]/80 border-b border-gray-100 dark:border-white/5 px-6 py-4 flex items-center justify-between transition-all duration-500 shadow-sm dark:shadow-none">
-        <div class="flex items-center gap-3">
-            <img src="https://indiacybercafe.com/wp-content/uploads/2026/03/sanjay_siteicon.png" alt="Logo" class="w-10 h-10 rounded-full border-2 border-[#834fff]" />
-            <div>
-                <h1 class="font-headline font-extrabold text-lg leading-tight tracking-tight">Sanjay Vaishya</h1>
-                <p class="text-[10px] font-bold text-[#834fff] uppercase tracking-widest leading-none">Developer</p>
-            </div>
-        </div>
-        <a href="/" class="w-10 h-10 rounded-full bg-gray-100 dark:bg-white/5 flex items-center justify-center text-gray-500 dark:text-gray-400 active:scale-90 transition-all hover:bg-gray-200 dark:hover:bg-white/10">
-            <span class="material-icons-round text-xl">home</span>
-        </a>
-    </header>
+<body>
+  <header>
+    <a href="/" class="brand">SANJAY VAISHYA</a>
+    <nav style="display:flex;gap:10px;flex-wrap:wrap;">
+      <a href="/privacy" class="btn">Interactive Portal</a>
+      <a href="/" class="btn">Home</a>
+    </nav>
+  </header>
 
-    <main class="px-6 py-8 max-w-lg mx-auto space-y-6">
-        <div class="relative flex items-center justify-center min-h-[64px] mb-4 px-4">
-            <a href="/" class="absolute left-0 w-12 h-12 rounded-full bg-gray-100 dark:bg-white/5 flex items-center justify-center text-gray-500 dark:text-gray-400 active:scale-90 transition-all">
-                <span class="material-icons-round">arrow_back</span>
-            </a>
-            <h2 class="font-headline font-extrabold text-2xl">Privacy Policy</h2>
-        </div>
+  <main>
+    <p class="kicker mono">LAST UPDATED: NOVEMBER 2026 · DATA PROTECTION &amp; PRIVACY</p>
+    <h1>Privacy Policy</h1>
+    <p class="lead">
+      This policy describes how SANJAY VAISHYA collects, processes, protects, and deletes information across our software development and client project management platform.
+    </p>
 
-        <div class="backdrop-blur-xl bg-white dark:bg-[#1a1a1a] border border-gray-200 dark:border-white/10 rounded-[32px] p-8 space-y-6 shadow-sm dark:shadow-2xl transition-all duration-500">
-            <p class="text-[10px] font-bold text-[#834fff] uppercase tracking-widest">Last Updated: April 01, 2026</p>
-            
-            <div class="prose prose-sm dark:prose-invert max-w-none space-y-6">
-                <section>
-                    <h3 class="text-lg font-bold font-headline">Introduction</h3>
-                    <p class="text-sm text-gray-600 dark:text-gray-400 leading-relaxed">
-                        Welcome to the Sanjay Vaishya App. Your privacy is important to us. This policy explains how we handle your information.
-                    </p>
-                </section>
+    <div class="card">
+      <section>
+        <h2>01. Account &amp; Authentication Data</h2>
+        <p>
+          When you register or sign in via Firebase Authentication, we collect your full name, email address, and optional company or phone profile stored in Firebase Realtime Database and our private operational database.
+        </p>
+      </section>
 
-                <section>
-                    <h3 class="text-lg font-bold font-headline">Information We Collect</h3>
-                    <p class="text-sm text-gray-600 dark:text-gray-400 leading-relaxed">
-                        We do not require any login or registration. We only collect information you voluntarily provide through our contact form (such as your name and query) to assist you.
-                    </p>
-                </section>
+      <section>
+        <h2>02. Project Inquiries &amp; Uploaded Files</h2>
+        <p>
+          When you submit a project inquiry or upload project briefs, wireframes, or deliverables inside a project room, files are stored in authenticated private storage and accessed only by authorized project participants.
+        </p>
+      </section>
 
-                <section>
-                    <h3 class="text-lg font-bold font-headline">How We Use Information</h3>
-                    <p class="text-sm text-gray-600 dark:text-gray-400 leading-relaxed">
-                        The information you provide is used solely to respond to your requests and provide the assistance you seek. <strong>We do not sell user data to any third parties.</strong>
-                    </p>
-                </section>
+      <section>
+        <h2>03. Billing &amp; Milestone Transactions</h2>
+        <p>
+          Payments are processed securely via Razorpay. SANJAY VAISHYA verifies transaction signatures server-side and retains payment codes and tax invoices without storing raw card or UPI credentials.
+        </p>
+      </section>
 
-                <section>
-                    <h3 class="text-lg font-bold font-headline">Log Data & Cookies</h3>
-                    <p class="text-sm text-gray-600 dark:text-gray-400 leading-relaxed">
-                        As a WebView-based app, we may collect standard log data and use cookies to improve your browsing experience on our website content.
-                    </p>
-                </section>
+      <section>
+        <h2>04. How Information Is Used</h2>
+        <ul>
+          <li>Preparing software quotations, milestones, and technical proposals</li>
+          <li>Providing authenticated client workspaces and real-time project communication</li>
+          <li>We never sell or rent client data to advertisers or third parties</li>
+        </ul>
+      </section>
 
-                <section>
-                    <h3 class="text-lg font-bold font-headline">Third-Party Services</h3>
-                    <p class="text-sm text-gray-600 dark:text-gray-400 leading-relaxed">
-                        We may use third-party services like Google Analytics to understand app usage. These services have their own privacy policies.
-                    </p>
-                </section>
+      <section>
+        <h2>05. Cookies &amp; Session Security</h2>
+        <p>
+          Signed <span class="mono">HttpOnly</span> cookies maintain authenticated backend API and WebSocket sessions securely without exposing tokens in URLs. Optional consent preferences are stored locally.
+        </p>
+      </section>
 
-                <section>
-                    <h3 class="text-lg font-bold font-headline">Data Security</h3>
-                    <p class="text-sm text-gray-600 dark:text-gray-400 leading-relaxed">
-                        We take reasonable measures to protect your data, but remember that no method of transmission over the internet is 100% secure.
-                    </p>
-                </section>
+      <section>
+        <h2>06. Data Deletion &amp; Contact</h2>
+        <p>
+          Request category removal or permanent self-service account deletion anytime on our
+          <a href="/delete-data.html">Data Deletion Portal</a> or write to
+          <a href="mailto:sanjayvaishya.dev@gmail.com">sanjayvaishya.dev@gmail.com</a> (+91 9203251821).
+        </p>
+      </section>
+    </div>
+  </main>
 
-                <section>
-                    <h3 class="text-lg font-bold font-headline">Children’s Privacy</h3>
-                    <p class="text-sm text-gray-600 dark:text-gray-400 leading-relaxed">
-                        Our app does not target children under 13. We do not knowingly collect data from children.
-                    </p>
-                </section>
-
-                <section>
-                    <h3 class="text-lg font-bold font-headline">Contact Us</h3>
-                    <p class="text-sm text-gray-600 dark:text-gray-400 leading-relaxed">
-                        If you have questions, contact us at:<br />
-                        Email: <strong>sanjayvaishya.dev@gmail.com</strong><br />
-                        Phone: <strong>+91 9203251821</strong>
-                    </p>
-                </section>
-            </div>
-        </div>
-    </main>
-
-    <footer class="py-12 text-center text-gray-500 text-[10px] font-bold uppercase tracking-widest">
-        <p>&copy; 2026 Sanjay Vaishya. All rights reserved.</p>
-    </footer>
+  <footer>
+    &copy; 2026 SANJAY VAISHYA · Founder-Led Full-Stack Development Team · Singrauli, MP, India
+  </footer>
 </body>
 </html>

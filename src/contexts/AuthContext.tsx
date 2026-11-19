@@ -266,15 +266,39 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     };
   }, [syncBackendSession]);
 
-  // Subscribe to Realtime Database users/{uid} so role/status changes by admin sync immediately
+  // Subscribe to Realtime Database users/{uid} so role/status changes or node removals sync immediately
   useEffect(() => {
     if (!firebaseUser) return;
+    let hadNode = false;
 
     const unsub = subscribeToUserNode(firebaseUser.uid, async (node) => {
-      if (!node) return;
+      if (!node) {
+        if (hadNode && !isAuthFlowInProgress()) {
+          lastSyncedTokenRef.current = null;
+          lastRtdbSignatureRef.current = null;
+          setAccountDisabledError('Your account record was removed or revoked. Sign in again if needed.');
+          try {
+            await fetch('/api/auth/logout', { method: 'POST', credentials: 'include' });
+          } catch {
+            // Ignore logout cleanup errors
+          }
+          await logoutFromFirebase();
+          setUser(null);
+        }
+        return;
+      }
+
+      hadNode = true;
 
       if (node.status === 'disabled') {
+        lastSyncedTokenRef.current = null;
+        lastRtdbSignatureRef.current = null;
         setAccountDisabledError('Your account has been disabled by an administrator.');
+        try {
+          await fetch('/api/auth/logout', { method: 'POST', credentials: 'include' });
+        } catch {
+          // Ignore logout cleanup errors
+        }
         await logoutFromFirebase();
         setUser(null);
         return;
@@ -300,7 +324,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     return () => unsub();
   }, [firebaseUser, syncBackendSession]);
 
-  // Connect WebSocket when user is authenticated
+  // Connect WebSocket when user session cookie is synchronized (never pass tokens in URL query strings)
   useEffect(() => {
     if (!user || !firebaseUser) {
       if (wsRef.current) {
@@ -315,13 +339,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     let cancelled = false;
     let sock: WebSocket | null = null;
 
-    const connectWs = async () => {
+    const connectWs = () => {
       refreshNotifications();
       try {
-        const token = await firebaseUser.getIdToken();
         if (cancelled) return;
         const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-        const wsUrl = `${protocol}//${window.location.host}/ws?token=${encodeURIComponent(token)}`;
+        const wsUrl = `${protocol}//${window.location.host}/ws`;
         sock = new WebSocket(wsUrl);
         wsRef.current = sock;
         setWsSocket(sock);
@@ -340,7 +363,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           }
         });
       } catch {
-        // Ignore socket error when token unavailable
+        // Ignore socket connection error
       }
     };
 

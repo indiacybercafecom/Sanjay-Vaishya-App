@@ -59,13 +59,6 @@ export function AppRouter() {
   const [selectedProjectId, setSelectedProjectId] = useState<number | null>(null);
   const [cookieDrawerOpen, setCookieDrawerOpen] = useState(false);
 
-  const [deleteOptions, setDeleteOptions] = useState({
-    contactData: true,
-    usageLogs: false,
-    personalInfo: true,
-    other: false,
-  });
-
   const navigate = useCallback((path: string) => {
     const raw = path.startsWith('/') ? path : `/${path}`;
     const [pathname, searchPart] = raw.split('?');
@@ -123,32 +116,6 @@ export function AppRouter() {
       setCurrentPath(target);
     }
   }, [authLoading, user, currentPath]);
-
-  const handleToggleDeleteOption = (key: 'contactData' | 'usageLogs' | 'personalInfo' | 'other') => {
-    setDeleteOptions((prev) => ({ ...prev, [key]: !prev[key] }));
-  };
-
-  const handleSendDeletionRequest = () => {
-    const selectedLabels = [
-      deleteOptions.contactData && 'Contact Form Data',
-      deleteOptions.usageLogs && 'App Usage Logs',
-      deleteOptions.personalInfo && 'Personal Information',
-      deleteOptions.other && 'Other Data',
-    ].filter(Boolean);
-
-    if (selectedLabels.length === 0) {
-      showToast('Select at least one data category to delete.', 'error');
-      return;
-    }
-
-    const body = encodeURIComponent(
-      `Hello Sanjay Vaishya Team,\n\nPlease delete the following data associated with my account/inquiries:\n- ${selectedLabels.join(
-        '\n- '
-      )}\n\nAccount Email: ${user?.email || '[Enter your email]'}\n`
-    );
-    window.location.href = `mailto:sanjayvaishya.dev@gmail.com?subject=Data%20Deletion%20Request&body=${body}`;
-    showToast('Prepared deletion request in your email client.');
-  };
 
   const isProtected = isWorkspaceRoute(currentPath);
 
@@ -273,14 +240,7 @@ export function AppRouter() {
     if (currentPath === '/terms') return <TermsView onBack={() => navigate(user ? '/settings' : '/')} />;
     if (currentPath === '/cookie-policy') return <CookiePolicyView onBack={() => navigate(user ? '/settings' : '/')} />;
     if (currentPath === '/delete-data') {
-      return (
-        <DeleteDataView
-          onBack={() => navigate(user ? '/settings' : '/')}
-          deleteOptions={deleteOptions}
-          onToggleOption={handleToggleDeleteOption}
-          onSendRequest={handleSendDeletionRequest}
-        />
-      );
+      return <DeleteDataView onBack={() => navigate(user ? '/settings' : '/')} onNavigate={navigate} />;
     }
 
     // Workspace Feature Routes
@@ -344,19 +304,40 @@ export function AppRouter() {
       );
     }
 
-    // Clean fallback to Home
+    // Explicit 404 Not Found screen for unmatched routes
     return (
-      <HomeScreen
-        onNavigate={navigate}
-        onSelectServiceQuote={(category) => {
-          setPreselectedCategory(category);
-          navigate('/start-project');
-        }}
-        onOpenProjectDetail={(slug) => {
-          setSelectedPortfolioSlug(slug);
-          navigate(`/work/${slug}`);
-        }}
-      />
+      <div className="max-w-xl mx-auto py-8">
+        <div className="bg-[#13161D] border border-[#262B38] rounded-lg p-6 md:p-8 space-y-5">
+          <p className="font-mono text-xs text-[#ED1C24] tabular-nums">HTTP 404 · ROUTE NOT FOUND</p>
+          <h1 className="text-2xl md:text-3xl font-bold text-white">Requested Page Not Found</h1>
+          <p className="text-sm text-[#CCCCCC] leading-relaxed">
+            No workspace view or public route matches <span className="font-mono text-[#00BFFF]">{currentPath}</span>.
+          </p>
+          <div className="flex flex-wrap gap-3 pt-2">
+            <button
+              type="button"
+              onClick={() => navigate('/')}
+              className="min-h-[42px] px-4 py-2 rounded-lg bg-[#ED1C24] hover:bg-[#B81D24] text-white text-xs font-semibold"
+            >
+              Return Home
+            </button>
+            <button
+              type="button"
+              onClick={() => navigate(user ? '/dashboard' : '/services')}
+              className="min-h-[42px] px-4 py-2 rounded-lg border border-[#2B3140] hover:border-[#00BFFF] text-xs font-medium text-white"
+            >
+              {user ? 'Open Dashboard' : 'Explore Services'}
+            </button>
+            <button
+              type="button"
+              onClick={() => navigate('/start-project')}
+              className="min-h-[42px] px-4 py-2 rounded-lg border border-[#2B3140] hover:border-[#00BFFF] text-xs font-medium text-[#CCCCCC] hover:text-white"
+            >
+              Start a Project
+            </button>
+          </div>
+        </div>
+      </div>
     );
   };
 

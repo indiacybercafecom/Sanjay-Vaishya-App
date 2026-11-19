@@ -1,7 +1,7 @@
 import { Router } from 'express';
 import { db } from '../db/database.ts';
 import { ENV } from '../config/env.ts';
-import { FirebaseAuthServiceError } from '../firebase/admin.ts';
+import { FirebaseAuthServiceError, deleteFirebaseUserAccount } from '../firebase/admin.ts';
 import {
   type AuthenticatedRequest,
   SESSION_COOKIE_NAME,
@@ -10,6 +10,7 @@ import {
   requireAuth,
   sanitizeText,
   logAudit,
+  notifyAdmins,
   extractBearerOrCookieToken,
   authenticateFirebaseIdToken,
 } from '../middleware/auth.ts';
@@ -30,7 +31,10 @@ authRouter.post('/session', async (req: AuthenticatedRequest, res) => {
   const submittedName = sanitizeText(req.body?.name, 120);
 
   try {
-    const result = await authenticateFirebaseIdToken(token, submittedName ? { name: submittedName } : undefined);
+    const result = await authenticateFirebaseIdToken(token, {
+      name: submittedName || undefined,
+      allowMissingRtdbCreation: true,
+    });
     if (!result || !result.user) {
       res.status(500).json({
         error: 'Unable to synchronize user profile with backend database.',
@@ -113,4 +117,79 @@ authRouter.patch('/profile', requireAuth, (req: AuthenticatedRequest, res) => {
   logAudit(userId, 'profile_updated', 'user', userId, {}, req.ip);
 
   res.json({ user: loadUserById(userId) });
+});
+
+authRouter.post('/delete-account', requireAuth, async (req: AuthenticatedRequest, res) => {
+  const user = req.authUser!;
+  if (user.roles.includes('admin')) {
+    res.status(403).json({
+      error: 'Administrator accounts cannot be self-deleted from this portal. Update role in Firebase Console first.',
+    });
+    return;
+  }
+
+  const reason = sanitizeText(req.body?.reason, 1000);
+  const requestCode = `DEL-${new Date().getFullYear()}-${user.id}-${Date.now().toString(36).toUpperCase()}`;
+
+  db.exec('BEGIN IMMEDIATE;');
+  try {
+    db.prepare(`
+      INSERT INTO data_deletion_requests (request_code, user_id, email, categories_json, notes, delete_account, status)
+      VALUES (?, ?, ?, ?, ?, 1, 'Completed')
+    `).run(
+      requestCode,
+      user.id,
+      user.email,
+      JSON.stringify(['Personal Information', 'Contact Form Data', 'App Usage Logs', 'Full Account']),
+      reason || 'Self-service authenticated account deletion'
+    );
+
+    const anonymizedEmail = `deleted-${user.id}-${Date.now()}@deleted.local`;
+    db.prepare(`
+      UPDATE users
+      SET name = 'Deleted User',
+          email = ?,
+          phone = '',
+          company = '',
+          firebase_uid = NULL,
+          is_active = 0,
+          updated_at = datetime('now')
+      WHERE id = ?
+    `).run(anonymizedEmail, user.id);
+
+    db.prepare(`UPDATE clients SET company_name = '', phone = '', address = '', notes = '' WHERE user_id = ?`).run(user.id);
+    db.prepare(`DELETE FROM notifications WHERE user_id = ?`).run(user.id);
+    db.exec('COMMIT;');
+  } catch (err) {
+    try {
+      db.exec('ROLLBACK;');
+    } catch {
+      // Ignore rollback error
+    }
+    res.status(500).json({
+      error: err instanceof Error ? err.message : 'Unable to process account deletion.',
+    });
+    return;
+  }
+
+  let firebaseResult = { rtdbDeleted: false, authDeleted: false };
+  if (user.firebaseUid) {
+    firebaseResult = await deleteFirebaseUserAccount(user.firebaseUid);
+  }
+
+  notifyAdmins(
+    'data_deletion_completed',
+    `Account Deleted: ${requestCode}`,
+    `User #${user.id} completed self-service account deletion.`,
+    '/admin'
+  );
+  logAudit(user.id, 'account_self_deleted', 'user', user.id, { requestCode, ...firebaseResult }, req.ip);
+
+  res.clearCookie(SESSION_COOKIE_NAME, { path: '/' });
+  res.json({
+    ok: true,
+    requestCode,
+    status: 'Completed',
+    firebaseDeleted: firebaseResult.authDeleted,
+  });
 });

@@ -20,6 +20,36 @@ export default function PortfolioPage({ selectedSlug, onSelectSlug, onStartProje
 
   const activeProject = selectedSlug ? portfolio.find((p) => p.slug === selectedSlug) : null;
 
+  if (selectedSlug && portfolio.length > 0 && !activeProject) {
+    return (
+      <div className="max-w-xl mx-auto bg-[#13161D] border border-[#262B38] rounded-lg p-6 md:p-8 space-y-4">
+        <p className="font-mono text-xs text-[#ED1C24]">CASE STUDY NOT FOUND</p>
+        <h1 className="text-xl md:text-2xl font-bold text-white">Requested Portfolio Entry Unavailable</h1>
+        <p className="text-sm text-[#CCCCCC] leading-relaxed">
+          No published project matches <span className="font-mono text-[#00BFFF]">{selectedSlug}</span>. Explore our verified builds or start a custom project brief.
+        </p>
+        <div className="flex flex-wrap gap-3 pt-2">
+          <button
+            type="button"
+            onClick={() => onSelectSlug(null)}
+            className="min-h-[42px] px-4 py-2 rounded-lg bg-[#ED1C24] hover:bg-[#B81D24] text-white text-xs font-semibold inline-flex items-center gap-2"
+          >
+            <ArrowLeft className="w-4 h-4" />
+            Browse All Projects
+          </button>
+          <button
+            type="button"
+            onClick={onStartProject}
+            className="min-h-[42px] px-4 py-2 rounded-lg border border-[#2B3140] hover:border-[#00BFFF] text-xs font-medium text-white inline-flex items-center gap-2"
+          >
+            Start a Project
+            <ArrowRight className="w-4 h-4" />
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   if (activeProject) {
     return (
       <div className="space-y-8">

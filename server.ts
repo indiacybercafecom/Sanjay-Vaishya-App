@@ -45,8 +45,25 @@ app.use(cookieParser());
 app.use(verifySameOriginForMutations);
 app.use(attachSessionMiddleware);
 
-// Health endpoint
+// Public health check — strictly minimal with no internal Firebase/project diagnostics
 app.get('/api/health', (_req, res) => {
+  res.status(200).json({
+    status: 'ok',
+    timestamp: new Date().toISOString(),
+  });
+});
+
+// Admin-only diagnostic health endpoint
+app.get('/api/admin/system-health', (req, res) => {
+  const authed = (req as { authUser?: { roles: string[] } }).authUser;
+  if (!authed) {
+    res.status(401).json({ error: 'Authentication required' });
+    return;
+  }
+  if (!authed.roles.includes('admin')) {
+    res.status(403).json({ error: 'Admin role required' });
+    return;
+  }
   const adminDiag = getFirebaseAdminDiagnostics();
   res.status(200).json({
     status: 'ok',
@@ -99,7 +116,11 @@ async function setupFrontend(): Promise<void> {
     if (fs.existsSync(distPath)) {
       app.use(express.static(distPath));
     }
-    app.get('*', (_req, res) => {
+    app.get('*', (req, res) => {
+      if (req.path === '/api' || req.path.startsWith('/api/') || req.path.startsWith('/ws')) {
+        res.status(404).json({ error: 'API endpoint not found.' });
+        return;
+      }
       const indexPath = path.join(distPath, 'index.html');
       if (fs.existsSync(indexPath)) {
         res.sendFile(indexPath);

@@ -3,6 +3,7 @@ import { WebSocketServer, WebSocket } from 'ws';
 import { db } from '../db/database.ts';
 import {
   authenticateFirebaseIdToken,
+  loadUserById,
   verifySignedToken,
   SESSION_COOKIE_NAME,
   type AuthUser,
@@ -31,6 +32,7 @@ function parseCookies(cookieHeader: string | undefined): Record<string, string> 
 }
 
 export function canUserAccessConversation(user: AuthUser, conversationId: number): boolean {
+  if (!user.isActive) return false;
   const convo = db
     .prepare(`
       SELECT c.id, c.project_id, c.channel_type, p.client_user_id, p.manager_user_id
@@ -69,9 +71,16 @@ export function broadcastToConversation(conversationId: number, payload: unknown
   const serialized = JSON.stringify(payload);
   for (const sockets of userSockets.values()) {
     for (const sock of sockets) {
-      if (sock.readyState === WebSocket.OPEN && sock.rooms?.has(conversationId)) {
-        sock.send(serialized);
+      if (sock.readyState !== WebSocket.OPEN || !sock.rooms?.has(conversationId) || !sock.user) {
+        continue;
       }
+      const freshUser = loadUserById(sock.user.id);
+      if (!freshUser || !canUserAccessConversation(freshUser, conversationId)) {
+        sock.rooms.delete(conversationId);
+        continue;
+      }
+      sock.user = freshUser;
+      sock.send(serialized);
     }
   }
 }
@@ -87,6 +96,19 @@ export function sendRealtimeNotification(userId: number, notification: Record<st
   }
 }
 
+export function disconnectUserSockets(userId: number): void {
+  const sockets = userSockets.get(userId);
+  if (!sockets) return;
+  for (const sock of sockets) {
+    try {
+      sock.close(4003, 'Session updated or disabled');
+    } catch {
+      sock.terminate();
+    }
+  }
+  userSockets.delete(userId);
+}
+
 export function attachWebSocketServer(httpServer: HttpServer): void {
   const wss = new WebSocketServer({ noServer: true });
 
@@ -98,13 +120,15 @@ export function attachWebSocketServer(httpServer: HttpServer): void {
 
     try {
       const parsedUrl = new URL(reqUrl, `http://${req.headers.host || 'localhost'}`);
-      let idToken = parsedUrl.searchParams.get('token') || '';
-      if (!idToken) {
-        const cookies = parseCookies(req.headers.cookie);
-        if (cookies[SESSION_COOKIE_NAME]) {
-          idToken = verifySignedToken(cookies[SESSION_COOKIE_NAME]) || '';
-        }
+      // Reject Firebase tokens in URL query parameters to prevent proxy/access log leakage
+      if (parsedUrl.searchParams.has('token')) {
+        socket.write('HTTP/1.1 400 Bad Request\r\n\r\n');
+        socket.destroy();
+        return;
       }
+
+      const cookies = parseCookies(req.headers.cookie);
+      const idToken = cookies[SESSION_COOKIE_NAME] ? verifySignedToken(cookies[SESSION_COOKIE_NAME]) || '' : '';
 
       if (!idToken) {
         socket.write('HTTP/1.1 401 Unauthorized\r\n\r\n');
@@ -164,7 +188,9 @@ export function attachWebSocketServer(httpServer: HttpServer): void {
         };
         const evt = parsed.event || parsed.type;
         if (evt === 'room:join' && typeof parsed.conversationId === 'number') {
-          if (canUserAccessConversation(user, parsed.conversationId)) {
+          const freshUser = loadUserById(user.id);
+          if (freshUser && canUserAccessConversation(freshUser, parsed.conversationId)) {
+            ws.user = freshUser;
             ws.rooms?.add(parsed.conversationId);
             ws.send(
               JSON.stringify({

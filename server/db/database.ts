@@ -336,11 +336,33 @@ export function initializeDatabase(): void {
       updated_at TEXT NOT NULL DEFAULT (datetime('now'))
     );
 
+    CREATE TABLE IF NOT EXISTS data_deletion_requests (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      request_code TEXT NOT NULL UNIQUE,
+      user_id INTEGER REFERENCES users(id) ON DELETE SET NULL,
+      email TEXT NOT NULL,
+      categories_json TEXT NOT NULL DEFAULT '[]',
+      notes TEXT DEFAULT '',
+      delete_account INTEGER NOT NULL DEFAULT 0,
+      status TEXT NOT NULL DEFAULT 'Pending' CHECK (status IN ('Pending', 'In Progress', 'Completed', 'Rejected')),
+      created_at TEXT NOT NULL DEFAULT (datetime('now')),
+      updated_at TEXT NOT NULL DEFAULT (datetime('now'))
+    );
+
+    CREATE TABLE IF NOT EXISTS razorpay_webhook_events (
+      event_id TEXT PRIMARY KEY,
+      event_type TEXT NOT NULL,
+      razorpay_payment_id TEXT DEFAULT '',
+      razorpay_order_id TEXT DEFAULT '',
+      processed_at TEXT NOT NULL DEFAULT (datetime('now'))
+    );
+
     CREATE INDEX IF NOT EXISTS idx_inquiries_email ON inquiries(email);
     CREATE INDEX IF NOT EXISTS idx_projects_client ON projects(client_user_id);
     CREATE INDEX IF NOT EXISTS idx_tasks_project ON tasks(project_id);
     CREATE INDEX IF NOT EXISTS idx_messages_convo ON messages(conversation_id);
     CREATE INDEX IF NOT EXISTS idx_notifications_user ON notifications(user_id, is_read);
+    CREATE INDEX IF NOT EXISTS idx_deletion_requests_email ON data_deletion_requests(email);
   `);
 
   runSafeMigrations();

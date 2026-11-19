@@ -20,7 +20,9 @@ import {
   canUserAccessConversation,
   broadcastToConversation,
   sendRealtimeNotification,
+  disconnectUserSockets,
 } from '../ws/realtime.ts';
+import { cleanupUploadedFiles, validateUploadedFileSignature } from '../utils/fileValidation.ts';
 
 export const workspaceRouter = Router();
 
@@ -63,6 +65,7 @@ function isTeamStaff(user: NonNullable<AuthenticatedRequest['authUser']>): boole
 }
 
 function canAccessProject(user: NonNullable<AuthenticatedRequest['authUser']>, projectId: number): boolean {
+  if (!user.isActive || !Number.isInteger(projectId) || projectId <= 0) return false;
   const project = db.prepare(`
     SELECT id, client_user_id, manager_user_id FROM projects WHERE id = ?
   `).get(projectId) as { id: number; client_user_id: number; manager_user_id: number | null } | undefined;
@@ -74,6 +77,41 @@ function canAccessProject(user: NonNullable<AuthenticatedRequest['authUser']>, p
 
   const member = db.prepare('SELECT 1 FROM project_members WHERE project_id = ? AND user_id = ?').get(projectId, user.id);
   return Boolean(member);
+}
+
+function canManageProject(user: NonNullable<AuthenticatedRequest['authUser']>, projectId: number): boolean {
+  if (!user.isActive || !Number.isInteger(projectId) || projectId <= 0) return false;
+  const project = db.prepare(`
+    SELECT id, manager_user_id FROM projects WHERE id = ?
+  `).get(projectId) as { id: number; manager_user_id: number | null } | undefined;
+
+  if (!project) return false;
+  if (user.roles.includes('admin')) return true;
+  if (!user.roles.includes('project_manager')) return false;
+  if (project.manager_user_id === user.id) return true;
+
+  const member = db.prepare('SELECT 1 FROM project_members WHERE project_id = ? AND user_id = ?').get(projectId, user.id);
+  return Boolean(member);
+}
+
+function ensureProjectStaffBeforeUpload(req: AuthenticatedRequest, res: import('express').Response, next: import('express').NextFunction): void {
+  const user = req.authUser;
+  const projectId = Number(req.params.id);
+  if (!user || !isTeamStaff(user) || !canAccessProject(user, projectId)) {
+    res.status(403).json({ error: 'Authorized project team access required before uploading deliverables.' });
+    return;
+  }
+  next();
+}
+
+function ensureConversationAccessBeforeUpload(req: AuthenticatedRequest, res: import('express').Response, next: import('express').NextFunction): void {
+  const user = req.authUser;
+  const conversationId = Number(req.params.id);
+  if (!user || !canUserAccessConversation(user, conversationId)) {
+    res.status(403).json({ error: 'Access denied to this conversation.' });
+    return;
+  }
+  next();
 }
 
 function ensureProjectConversations(projectId: number, title: string, clientUserId: number, managerUserId: number | null): void {
@@ -132,7 +170,7 @@ function computeProjectProgress(projectId: number): number {
 workspaceRouter.get('/workspace/overview', requireAuth, (req: AuthenticatedRequest, res) => {
   const user = req.authUser!;
 
-  if (user.roles.includes('admin') || user.roles.includes('project_manager')) {
+  if (user.roles.includes('admin')) {
     const totalClients = (db.prepare(`SELECT COUNT(DISTINCT user_id) as cnt FROM user_roles WHERE role = 'client'`).get() as { cnt: number }).cnt;
     const activeProjects = (db.prepare(`SELECT COUNT(*) as cnt FROM projects WHERE status NOT IN ('Completed', 'Delivered', 'Cancelled')`).get() as { cnt: number }).cnt;
     const totalProjects = (db.prepare(`SELECT COUNT(*) as cnt FROM projects`).get() as { cnt: number }).cnt;
@@ -162,6 +200,74 @@ workspaceRouter.get('/workspace/overview', requireAuth, (req: AuthenticatedReque
         unreadNotifications,
       },
       recentActivities,
+      razorpayConfigured: isRazorpayConfigured(),
+    });
+    return;
+  }
+
+  if (user.roles.includes('project_manager')) {
+    const pmScopeClause = `
+      (p.manager_user_id = ? OR EXISTS (SELECT 1 FROM project_members pm WHERE pm.project_id = p.id AND pm.user_id = ?))
+    `;
+    const activeProjects = (
+      db
+        .prepare(`SELECT COUNT(DISTINCT p.id) as cnt FROM projects p WHERE ${pmScopeClause} AND p.status NOT IN ('Completed', 'Delivered', 'Cancelled')`)
+        .get(user.id, user.id) as { cnt: number }
+    ).cnt;
+    const totalProjects = (
+      db.prepare(`SELECT COUNT(DISTINCT p.id) as cnt FROM projects p WHERE ${pmScopeClause}`).get(user.id, user.id) as {
+        cnt: number;
+      }
+    ).cnt;
+    const totalClients = (
+      db
+        .prepare(`SELECT COUNT(DISTINCT p.client_user_id) as cnt FROM projects p WHERE ${pmScopeClause}`)
+        .get(user.id, user.id) as { cnt: number }
+    ).cnt;
+    const openInquiries = (db.prepare(`SELECT COUNT(*) as cnt FROM inquiries WHERE status IN ('New', 'Under Review', 'Discussion')`).get() as { cnt: number }).cnt;
+    const pendingProposals = (
+      db
+        .prepare(`
+          SELECT COUNT(DISTINCT pr.id) as cnt FROM proposals pr
+          LEFT JOIN projects p ON p.id = pr.project_id
+          WHERE (pr.created_by = ? OR (p.id IS NOT NULL AND ${pmScopeClause}))
+            AND pr.status IN ('sent', 'viewed', 'revision_requested')
+        `)
+        .get(user.id, user.id, user.id) as { cnt: number }
+    ).cnt;
+    const collectedRevenue = (
+      db
+        .prepare(`
+          SELECT COALESCE(SUM(pay.amount_inr), 0) as total FROM payments pay
+          JOIN projects p ON p.id = pay.project_id
+          WHERE ${pmScopeClause} AND pay.status = 'successful'
+        `)
+        .get(user.id, user.id) as { total: number }
+    ).total;
+    const pendingPayments = (
+      db
+        .prepare(`
+          SELECT COALESCE(SUM(pay.amount_inr), 0) as total FROM payments pay
+          JOIN projects p ON p.id = pay.project_id
+          WHERE ${pmScopeClause} AND pay.status = 'pending'
+        `)
+        .get(user.id, user.id) as { total: number }
+    ).total;
+    const unreadNotifications = (db.prepare(`SELECT COUNT(*) as cnt FROM notifications WHERE user_id = ? AND is_read = 0`).get(user.id) as { cnt: number }).cnt;
+
+    res.json({
+      role: user.primaryRole,
+      metrics: {
+        totalClients,
+        activeProjects,
+        totalProjects,
+        openInquiries,
+        pendingProposals,
+        collectedRevenue,
+        pendingPayments,
+        unreadNotifications,
+      },
+      recentActivities: [],
       razorpayConfigured: isRazorpayConfigured(),
     });
     return;
@@ -360,7 +466,7 @@ workspaceRouter.get('/workspace/projects', requireAuth, (req: AuthenticatedReque
   const user = req.authUser!;
   let rows: Record<string, unknown>[];
 
-  if (user.roles.includes('admin') || user.roles.includes('project_manager')) {
+  if (user.roles.includes('admin')) {
     rows = db.prepare(`
       SELECT p.*, c.name as client_name, c.email as client_email, m.name as manager_name
       FROM projects p
@@ -521,6 +627,17 @@ workspaceRouter.patch(
   requireRole('admin', 'project_manager'),
   (req: AuthenticatedRequest, res) => {
     const projectId = Number(req.params.id);
+    const user = req.authUser!;
+    const existing = db.prepare('SELECT * FROM projects WHERE id = ?').get(projectId) as Record<string, unknown> | undefined;
+    if (!existing) {
+      res.status(404).json({ error: 'Project not found.' });
+      return;
+    }
+    if (!canManageProject(user, projectId)) {
+      res.status(403).json({ error: 'You are not authorized to modify this project.' });
+      return;
+    }
+
     const status = sanitizeText(req.body?.status, 40);
     const managerUserId = req.body?.managerUserId ? Number(req.body.managerUserId) : null;
     const expectedDeliveryDate = sanitizeText(req.body?.expectedDeliveryDate, 30);
@@ -531,10 +648,22 @@ workspaceRouter.patch(
       return;
     }
 
-    const existing = db.prepare('SELECT * FROM projects WHERE id = ?').get(projectId) as Record<string, unknown> | undefined;
-    if (!existing) {
-      res.status(404).json({ error: 'Project not found.' });
-      return;
+    if (managerUserId) {
+      if (!user.roles.includes('admin')) {
+        res.status(403).json({ error: 'Only administrators can reassign a project manager.' });
+        return;
+      }
+      const mgr = db
+        .prepare(`
+          SELECT u.id FROM users u
+          JOIN user_roles ur ON ur.user_id = u.id
+          WHERE u.id = ? AND u.is_active = 1 AND ur.role IN ('admin', 'project_manager')
+        `)
+        .get(managerUserId);
+      if (!mgr) {
+        res.status(400).json({ error: 'Selected project manager must be an active admin or project manager.' });
+        return;
+      }
     }
 
     db.prepare(`
@@ -556,7 +685,7 @@ workspaceRouter.patch(
       );
     }
 
-    logAudit(req.authUser!.id, 'project_updated', 'project', projectId, { status }, req.ip);
+    logAudit(user.id, 'project_updated', 'project', projectId, { status }, req.ip);
     res.json({ ok: true });
   }
 );
@@ -568,6 +697,31 @@ workspaceRouter.post(
     const projectId = Number(req.params.id);
     const userId = Number(req.body?.userId);
     const roleLabel = sanitizeText(req.body?.roleLabel, 60) || 'Developer';
+
+    const projectExists = db.prepare('SELECT id FROM projects WHERE id = ?').get(projectId);
+    if (!projectExists) {
+      res.status(404).json({ error: 'Project not found.' });
+      return;
+    }
+    if (!canManageProject(req.authUser!, projectId)) {
+      res.status(403).json({ error: 'You are not authorized to manage members for this project.' });
+      return;
+    }
+    if (!Number.isInteger(userId) || userId <= 0) {
+      res.status(400).json({ error: 'Valid user selection is required.' });
+      return;
+    }
+    const staffMember = db
+      .prepare(`
+        SELECT u.id FROM users u
+        JOIN user_roles ur ON ur.user_id = u.id
+        WHERE u.id = ? AND u.is_active = 1 AND ur.role IN ('admin', 'project_manager', 'developer', 'designer')
+      `)
+      .get(userId);
+    if (!staffMember) {
+      res.status(400).json({ error: 'Assigned member must be an active team staff account.' });
+      return;
+    }
 
     db.prepare(`INSERT OR REPLACE INTO project_members (project_id, user_id, role_label) VALUES (?, ?, ?)`).run(
       projectId,
@@ -592,6 +746,18 @@ workspaceRouter.post(
   requireRole('admin', 'project_manager'),
   (req: AuthenticatedRequest, res) => {
     const projectId = Number(req.params.id);
+    const project = db.prepare('SELECT client_user_id, title FROM projects WHERE id = ?').get(projectId) as
+      | { client_user_id: number; title: string }
+      | undefined;
+    if (!project) {
+      res.status(404).json({ error: 'Project not found.' });
+      return;
+    }
+    if (!canManageProject(req.authUser!, projectId)) {
+      res.status(403).json({ error: 'You are not authorized to add milestones to this project.' });
+      return;
+    }
+
     const title = sanitizeText(req.body?.title, 160);
     const description = sanitizeText(req.body?.description, 1000);
     const dueDate = sanitizeText(req.body?.dueDate, 30);
@@ -607,18 +773,14 @@ workspaceRouter.post(
       VALUES (?, ?, ?, ?, ?)
     `).run(projectId, title, description, dueDate, amountInr);
 
-    const project = db.prepare('SELECT client_user_id, title FROM projects WHERE id = ?').get(projectId) as
-      | { client_user_id: number; title: string }
-      | undefined;
-    if (project) {
-      createNotification(
-        project.client_user_id,
-        'milestone_created',
-        `Milestone Added: ${title}`,
-        `A new milestone was added to "${project.title}".`,
-        '/projects'
-      );
-    }
+    createNotification(
+      project.client_user_id,
+      'milestone_created',
+      `Milestone Added: ${title}`,
+      `A new milestone was added to "${project.title}".`,
+      '/projects'
+    );
+    logAudit(req.authUser!.id, 'milestone_created', 'milestone', Number(r.lastInsertRowid), { projectId, title }, req.ip);
     res.status(201).json({ id: Number(r.lastInsertRowid) });
   }
 );
@@ -666,6 +828,16 @@ workspaceRouter.post(
   requireRole('admin', 'project_manager'),
   (req: AuthenticatedRequest, res) => {
     const projectId = Number(req.params.id);
+    const projectExists = db.prepare('SELECT id FROM projects WHERE id = ?').get(projectId);
+    if (!projectExists) {
+      res.status(404).json({ error: 'Project not found.' });
+      return;
+    }
+    if (!canManageProject(req.authUser!, projectId)) {
+      res.status(403).json({ error: 'You are not authorized to assign tasks on this project.' });
+      return;
+    }
+
     const title = sanitizeText(req.body?.title, 160);
     const description = sanitizeText(req.body?.description, 2000);
     const assignedToUserId = req.body?.assignedToUserId ? Number(req.body.assignedToUserId) : null;
@@ -677,6 +849,32 @@ workspaceRouter.post(
       res.status(400).json({ error: 'Task title is required.' });
       return;
     }
+    if (!['low', 'medium', 'high', 'critical'].includes(priority)) {
+      res.status(400).json({ error: 'Invalid task priority.' });
+      return;
+    }
+
+    if (milestoneId !== null) {
+      const validMs = db.prepare('SELECT id FROM milestones WHERE id = ? AND project_id = ?').get(milestoneId, projectId);
+      if (!validMs) {
+        res.status(400).json({ error: 'Selected milestone does not belong to this project.' });
+        return;
+      }
+    }
+
+    if (assignedToUserId !== null) {
+      const validAssignee = db
+        .prepare(`
+          SELECT u.id FROM users u
+          JOIN user_roles ur ON ur.user_id = u.id
+          WHERE u.id = ? AND u.is_active = 1 AND ur.role IN ('admin', 'project_manager', 'developer', 'designer')
+        `)
+        .get(assignedToUserId);
+      if (!validAssignee) {
+        res.status(400).json({ error: 'Task assignee must be an active team member.' });
+        return;
+      }
+    }
 
     const r = db.prepare(`
       INSERT INTO tasks (project_id, milestone_id, title, description, assigned_to_user_id, priority, due_date)
@@ -687,6 +885,7 @@ workspaceRouter.post(
       const nId = createNotification(assignedToUserId, 'task_assigned', `Task Assigned: ${title}`, `Assigned on project #${projectId}.`, '/projects');
       sendRealtimeNotification(assignedToUserId, { id: nId, title: `Task Assigned: ${title}` });
     }
+    logAudit(req.authUser!.id, 'task_created', 'task', Number(r.lastInsertRowid), { projectId, assignedToUserId }, req.ip);
     res.status(201).json({ id: Number(r.lastInsertRowid) });
   }
 );
@@ -729,37 +928,56 @@ workspaceRouter.patch('/workspace/tasks/:id', requireAuth, (req: AuthenticatedRe
 workspaceRouter.post(
   '/workspace/projects/:id/updates',
   requireAuth,
+  ensureProjectStaffBeforeUpload,
   upload.single('deliverable'),
   (req: AuthenticatedRequest, res) => {
     const projectId = Number(req.params.id);
     const user = req.authUser!;
-    if (!isTeamStaff(user) || !canAccessProject(user, projectId)) {
-      res.status(403).json({ error: 'Authorized team access required.' });
-      return;
-    }
 
     const title = sanitizeText(req.body?.title, 160);
     const body = sanitizeText(req.body?.body, 4000);
     const visibility = req.body?.visibility === 'internal' ? 'internal' : 'client';
 
     if (!title || !body) {
+      cleanupUploadedFiles(req.file);
       res.status(400).json({ error: 'Update title and details are required.' });
       return;
     }
 
-    let attachmentId: number | null = null;
-    if (req.file) {
-      const att = db.prepare(`
-        INSERT INTO attachments (owner_user_id, project_id, original_name, stored_name, mime_type, size_bytes, visibility)
-        VALUES (?, ?, ?, ?, ?, ?, 'private')
-      `).run(user.id, projectId, req.file.originalname, req.file.filename, req.file.mimetype, req.file.size);
-      attachmentId = Number(att.lastInsertRowid);
+    if (req.file && !validateUploadedFileSignature(req.file.path, req.file.mimetype)) {
+      cleanupUploadedFiles(req.file);
+      res.status(400).json({ error: 'Uploaded deliverable failed content signature validation.' });
+      return;
     }
 
-    const r = db.prepare(`
-      INSERT INTO project_updates (project_id, author_user_id, visibility, title, body, deliverable_attachment_id)
-      VALUES (?, ?, ?, ?, ?, ?)
-    `).run(projectId, user.id, visibility, title, body, attachmentId);
+    let attachmentId: number | null = null;
+    let updateId = 0;
+    db.exec('BEGIN IMMEDIATE;');
+    try {
+      if (req.file) {
+        const att = db.prepare(`
+          INSERT INTO attachments (owner_user_id, project_id, original_name, stored_name, mime_type, size_bytes, visibility)
+          VALUES (?, ?, ?, ?, ?, ?, 'private')
+        `).run(user.id, projectId, req.file.originalname, req.file.filename, req.file.mimetype, req.file.size);
+        attachmentId = Number(att.lastInsertRowid);
+      }
+
+      const r = db.prepare(`
+        INSERT INTO project_updates (project_id, author_user_id, visibility, title, body, deliverable_attachment_id)
+        VALUES (?, ?, ?, ?, ?, ?)
+      `).run(projectId, user.id, visibility, title, body, attachmentId);
+      updateId = Number(r.lastInsertRowid);
+      db.exec('COMMIT;');
+    } catch (err) {
+      try {
+        db.exec('ROLLBACK;');
+      } catch {
+        // Ignore rollback error
+      }
+      cleanupUploadedFiles(req.file);
+      res.status(500).json({ error: err instanceof Error ? err.message : 'Failed to save project update.' });
+      return;
+    }
 
     if (visibility === 'client') {
       const project = db.prepare('SELECT client_user_id FROM projects WHERE id = ?').get(projectId) as { client_user_id: number } | undefined;
@@ -775,7 +993,7 @@ workspaceRouter.post(
       }
     }
 
-    res.status(201).json({ id: Number(r.lastInsertRowid) });
+    res.status(201).json({ id: updateId });
   }
 );
 
@@ -814,19 +1032,32 @@ workspaceRouter.post('/workspace/updates/:id/feedback', requireAuth, (req: Authe
 // ---------- PROPOSALS & QUOTATIONS ----------
 workspaceRouter.get('/workspace/proposals', requireAuth, (req: AuthenticatedRequest, res) => {
   const user = req.authUser!;
-  const rows =
-    user.roles.includes('admin') || user.roles.includes('project_manager')
-      ? (db.prepare(`
-          SELECT pr.*, u.name as client_name, u.email as client_email
-          FROM proposals pr JOIN users u ON u.id = pr.client_user_id
-          ORDER BY pr.id DESC
-        `).all() as Record<string, unknown>[])
-      : (db.prepare(`
-          SELECT pr.*, u.name as client_name, u.email as client_email
-          FROM proposals pr JOIN users u ON u.id = pr.client_user_id
-          WHERE pr.client_user_id = ? AND pr.status != 'draft'
-          ORDER BY pr.id DESC
-        `).all(user.id) as Record<string, unknown>[]);
+  let rows: Record<string, unknown>[];
+  if (user.roles.includes('admin')) {
+    rows = db.prepare(`
+      SELECT pr.*, u.name as client_name, u.email as client_email
+      FROM proposals pr JOIN users u ON u.id = pr.client_user_id
+      ORDER BY pr.id DESC
+    `).all() as Record<string, unknown>[];
+  } else if (user.roles.includes('project_manager')) {
+    rows = db.prepare(`
+      SELECT DISTINCT pr.*, u.name as client_name, u.email as client_email
+      FROM proposals pr
+      JOIN users u ON u.id = pr.client_user_id
+      LEFT JOIN projects p ON p.id = pr.project_id
+      WHERE pr.created_by = ?
+         OR p.manager_user_id = ?
+         OR EXISTS (SELECT 1 FROM project_members pm WHERE pm.project_id = pr.project_id AND pm.user_id = ?)
+      ORDER BY pr.id DESC
+    `).all(user.id, user.id, user.id) as Record<string, unknown>[];
+  } else {
+    rows = db.prepare(`
+      SELECT pr.*, u.name as client_name, u.email as client_email
+      FROM proposals pr JOIN users u ON u.id = pr.client_user_id
+      WHERE pr.client_user_id = ? AND pr.status != 'draft'
+      ORDER BY pr.id DESC
+    `).all(user.id) as Record<string, unknown>[];
+  }
 
   const enriched = rows.map((pr) => ({
     ...pr,
@@ -853,6 +1084,46 @@ workspaceRouter.post(
     if (!clientUserId || !title || !scopeSummary || items.length === 0) {
       res.status(400).json({ error: 'Client, title, scope summary, and at least one item are required.' });
       return;
+    }
+
+    const clientUser = db.prepare('SELECT id, is_active FROM users WHERE id = ?').get(clientUserId) as
+      | { id: number; is_active: number }
+      | undefined;
+    if (!clientUser) {
+      res.status(404).json({ error: 'Selected client account does not exist.' });
+      return;
+    }
+
+    if (inquiryId !== null) {
+      const inquiry = db.prepare('SELECT id, client_user_id FROM inquiries WHERE id = ?').get(inquiryId) as
+        | { id: number; client_user_id: number | null }
+        | undefined;
+      if (!inquiry) {
+        res.status(404).json({ error: 'Linked inquiry not found.' });
+        return;
+      }
+      if (inquiry.client_user_id && inquiry.client_user_id !== clientUserId) {
+        res.status(400).json({ error: 'Linked inquiry belongs to a different client account.' });
+        return;
+      }
+    }
+
+    if (projectId !== null) {
+      const project = db.prepare('SELECT id, client_user_id FROM projects WHERE id = ?').get(projectId) as
+        | { id: number; client_user_id: number }
+        | undefined;
+      if (!project) {
+        res.status(404).json({ error: 'Linked project not found.' });
+        return;
+      }
+      if (!canManageProject(req.authUser!, projectId)) {
+        res.status(403).json({ error: 'You are not authorized to issue proposals for this project.' });
+        return;
+      }
+      if (project.client_user_id !== clientUserId) {
+        res.status(400).json({ error: 'Linked project belongs to a different client account.' });
+        return;
+      }
     }
 
     const totalAmount = items.reduce((sum, item) => sum + Math.max(0, Number(item.amountInr || 0)), 0);
@@ -997,42 +1268,63 @@ workspaceRouter.post('/workspace/proposals/:id/respond', requireAuth, (req: Auth
 // ---------- PAYMENTS & INVOICES (RAZORPAY READY) ----------
 workspaceRouter.get('/workspace/payments', requireAuth, (req: AuthenticatedRequest, res) => {
   const user = req.authUser!;
-  const payments =
-    user.roles.includes('admin') || user.roles.includes('project_manager')
-      ? db.prepare(`
-          SELECT pay.*, u.name as client_name, u.email as client_email, p.title as project_title
-          FROM payments pay
-          JOIN users u ON u.id = pay.client_user_id
-          LEFT JOIN projects p ON p.id = pay.project_id
-          ORDER BY pay.id DESC
-        `).all()
-      : db.prepare(`
-          SELECT pay.*, p.title as project_title
-          FROM payments pay
-          LEFT JOIN projects p ON p.id = pay.project_id
-          WHERE pay.client_user_id = ?
-          ORDER BY pay.id DESC
-        `).all(user.id);
+  let payments: unknown[];
+  let invoices: unknown[];
 
-  const invoices =
-    user.roles.includes('admin') || user.roles.includes('project_manager')
-      ? db.prepare(`
-          SELECT inv.*, u.name as client_name, p.title as project_title, pay.payment_code, pay.razorpay_payment_id
-          FROM invoices inv
-          JOIN users u ON u.id = inv.client_user_id
-          JOIN payments pay ON pay.id = inv.payment_id
-          LEFT JOIN projects p ON p.id = inv.project_id
-          ORDER BY inv.id DESC
-        `).all()
-      : db.prepare(`
-          SELECT inv.*, u.name as client_name, p.title as project_title, pay.payment_code, pay.razorpay_payment_id
-          FROM invoices inv
-          JOIN users u ON u.id = inv.client_user_id
-          JOIN payments pay ON pay.id = inv.payment_id
-          LEFT JOIN projects p ON p.id = inv.project_id
-          WHERE inv.client_user_id = ?
-          ORDER BY inv.id DESC
-        `).all(user.id);
+  if (user.roles.includes('admin')) {
+    payments = db.prepare(`
+      SELECT pay.*, u.name as client_name, u.email as client_email, p.title as project_title
+      FROM payments pay
+      JOIN users u ON u.id = pay.client_user_id
+      LEFT JOIN projects p ON p.id = pay.project_id
+      ORDER BY pay.id DESC
+    `).all();
+    invoices = db.prepare(`
+      SELECT inv.*, u.name as client_name, p.title as project_title, pay.payment_code, pay.razorpay_payment_id
+      FROM invoices inv
+      JOIN users u ON u.id = inv.client_user_id
+      JOIN payments pay ON pay.id = inv.payment_id
+      LEFT JOIN projects p ON p.id = inv.project_id
+      ORDER BY inv.id DESC
+    `).all();
+  } else if (user.roles.includes('project_manager')) {
+    payments = db.prepare(`
+      SELECT DISTINCT pay.*, u.name as client_name, u.email as client_email, p.title as project_title
+      FROM payments pay
+      JOIN users u ON u.id = pay.client_user_id
+      JOIN projects p ON p.id = pay.project_id
+      WHERE p.manager_user_id = ?
+         OR EXISTS (SELECT 1 FROM project_members pm WHERE pm.project_id = p.id AND pm.user_id = ?)
+      ORDER BY pay.id DESC
+    `).all(user.id, user.id);
+    invoices = db.prepare(`
+      SELECT DISTINCT inv.*, u.name as client_name, p.title as project_title, pay.payment_code, pay.razorpay_payment_id
+      FROM invoices inv
+      JOIN users u ON u.id = inv.client_user_id
+      JOIN payments pay ON pay.id = inv.payment_id
+      JOIN projects p ON p.id = inv.project_id
+      WHERE p.manager_user_id = ?
+         OR EXISTS (SELECT 1 FROM project_members pm WHERE pm.project_id = p.id AND pm.user_id = ?)
+      ORDER BY inv.id DESC
+    `).all(user.id, user.id);
+  } else {
+    payments = db.prepare(`
+      SELECT pay.*, p.title as project_title
+      FROM payments pay
+      LEFT JOIN projects p ON p.id = pay.project_id
+      WHERE pay.client_user_id = ?
+      ORDER BY pay.id DESC
+    `).all(user.id);
+    invoices = db.prepare(`
+      SELECT inv.*, u.name as client_name, p.title as project_title, pay.payment_code, pay.razorpay_payment_id
+      FROM invoices inv
+      JOIN users u ON u.id = inv.client_user_id
+      JOIN payments pay ON pay.id = inv.payment_id
+      LEFT JOIN projects p ON p.id = inv.project_id
+      WHERE inv.client_user_id = ?
+      ORDER BY inv.id DESC
+    `).all(user.id);
+  }
 
   res.json({
     payments,
@@ -1048,12 +1340,46 @@ workspaceRouter.post(
     const clientUserId = Number(req.body?.clientUserId);
     const projectId = req.body?.projectId ? Number(req.body.projectId) : null;
     const milestoneId = req.body?.milestoneId ? Number(req.body.milestoneId) : null;
-    const amountInr = Math.max(1, Number(req.body?.amountInr || 0));
+    const amountInr = Math.round(Number(req.body?.amountInr || 0));
     const paymentType = ['advance', 'milestone', 'balance'].includes(req.body?.paymentType) ? req.body.paymentType : 'milestone';
 
-    if (!clientUserId || !amountInr) {
-      res.status(400).json({ error: 'Client and valid INR amount are required.' });
+    if (!clientUserId || !Number.isFinite(amountInr) || amountInr <= 0) {
+      res.status(400).json({ error: 'Client and valid positive INR amount are required.' });
       return;
+    }
+
+    const clientUser = db.prepare('SELECT id FROM users WHERE id = ?').get(clientUserId);
+    if (!clientUser) {
+      res.status(404).json({ error: 'Selected client account does not exist.' });
+      return;
+    }
+
+    if (projectId !== null) {
+      const project = db.prepare('SELECT id, client_user_id FROM projects WHERE id = ?').get(projectId) as
+        | { id: number; client_user_id: number }
+        | undefined;
+      if (!project) {
+        res.status(404).json({ error: 'Selected project not found.' });
+        return;
+      }
+      if (!canManageProject(req.authUser!, projectId)) {
+        res.status(403).json({ error: 'You are not authorized to issue payments on this project.' });
+        return;
+      }
+      if (project.client_user_id !== clientUserId) {
+        res.status(400).json({ error: 'Selected project belongs to a different client.' });
+        return;
+      }
+    }
+
+    if (milestoneId !== null) {
+      const milestone = db.prepare('SELECT id, project_id FROM milestones WHERE id = ?').get(milestoneId) as
+        | { id: number; project_id: number }
+        | undefined;
+      if (!milestone || (projectId !== null && milestone.project_id !== projectId)) {
+        res.status(400).json({ error: 'Milestone reference does not match selected project.' });
+        return;
+      }
     }
 
     const paymentCode = `PAY-${new Date().getFullYear()}-${crypto.randomBytes(2).toString('hex').toUpperCase()}`;
@@ -1069,6 +1395,7 @@ workspaceRouter.post(
       `Payment of INR ${amountInr.toLocaleString('en-IN')} (${paymentType}) is pending.`,
       '/payments'
     );
+    logAudit(req.authUser!.id, 'payment_requested', 'payment', paymentCode, { clientUserId, projectId, amountInr }, req.ip);
     res.status(201).json({ id: Number(r.lastInsertRowid), paymentCode });
   }
 );
@@ -1139,7 +1466,7 @@ workspaceRouter.post('/payments/razorpay/create-order', requireAuth, async (req:
   }
 });
 
-workspaceRouter.post('/payments/razorpay/verify', requireAuth, (req: AuthenticatedRequest, res) => {
+workspaceRouter.post('/payments/razorpay/verify', requireAuth, async (req: AuthenticatedRequest, res) => {
   if (!isRazorpayConfigured()) {
     res.status(503).json({ error: 'Razorpay is not configured on this server.' });
     return;
@@ -1156,7 +1483,7 @@ workspaceRouter.post('/payments/razorpay/verify', requireAuth, (req: Authenticat
   }
 
   const payment = db.prepare('SELECT * FROM payments WHERE id = ?').get(paymentId) as
-    | { id: number; project_id: number | null; client_user_id: number; amount_inr: number; razorpay_order_id: string; status: string }
+    | { id: number; project_id: number | null; client_user_id: number; amount_inr: number; currency: string; razorpay_order_id: string; status: string }
     | undefined;
 
   if (!payment || (payment.client_user_id !== req.authUser!.id && !req.authUser!.roles.includes('admin'))) {
@@ -1186,17 +1513,70 @@ workspaceRouter.post('/payments/razorpay/verify', requireAuth, (req: Authenticat
     return;
   }
 
-  db.prepare(`
-    UPDATE payments
-    SET razorpay_payment_id = ?, razorpay_signature = ?, status = 'successful', updated_at = datetime('now')
-    WHERE id = ?
-  `).run(razorpayPaymentId, razorpaySignature.toLowerCase(), payment.id);
+  // Independently verify payment details against Razorpay Payments API (status, order_id, amount, currency)
+  const expectedPaise = Math.round(payment.amount_inr * 100);
+  try {
+    const authHeader = Buffer.from(`${ENV.RAZORPAY_KEY_ID}:${ENV.RAZORPAY_KEY_SECRET}`).toString('base64');
+    const rzpPayRes = await fetch(`https://api.razorpay.com/v1/payments/${encodeURIComponent(razorpayPaymentId)}`, {
+      headers: { Authorization: `Basic ${authHeader}` },
+    });
+    if (!rzpPayRes.ok) {
+      res.status(502).json({ error: 'Unable to confirm payment state with Razorpay API.' });
+      return;
+    }
+    const rzpPayment = (await rzpPayRes.json()) as {
+      id?: string;
+      order_id?: string;
+      status?: string;
+      amount?: number;
+      currency?: string;
+    };
+    if (
+      rzpPayment.id !== razorpayPaymentId ||
+      rzpPayment.order_id !== razorpayOrderId ||
+      rzpPayment.currency !== (payment.currency || 'INR') ||
+      rzpPayment.amount !== expectedPaise ||
+      !['captured', 'authorized'].includes(String(rzpPayment.status || ''))
+    ) {
+      db.prepare(`UPDATE payments SET status = 'failed', updated_at = datetime('now') WHERE id = ?`).run(payment.id);
+      logAudit(req.authUser!.id, 'payment_verification_mismatch', 'payment', payment.id, { rzpPayment }, req.ip);
+      res.status(400).json({ error: 'Razorpay payment status, amount, currency, or order reference did not match.' });
+      return;
+    }
+  } catch {
+    res.status(502).json({ error: 'Unable to reach Razorpay verification API.' });
+    return;
+  }
 
   const invoiceNumber = `INV-${new Date().getFullYear()}-${crypto.randomBytes(2).toString('hex').toUpperCase()}`;
-  db.prepare(`
-    INSERT OR IGNORE INTO invoices (invoice_number, payment_id, project_id, client_user_id, amount_inr, status)
-    VALUES (?, ?, ?, ?, ?, 'issued')
-  `).run(invoiceNumber, payment.id, payment.project_id, payment.client_user_id, payment.amount_inr);
+  db.exec('BEGIN IMMEDIATE;');
+  try {
+    const current = db.prepare('SELECT status FROM payments WHERE id = ?').get(payment.id) as { status: string } | undefined;
+    if (!current || current.status === 'successful') {
+      db.exec('ROLLBACK;');
+      res.status(409).json({ error: 'Payment was already processed.' });
+      return;
+    }
+    db.prepare(`
+      UPDATE payments
+      SET razorpay_payment_id = ?, razorpay_signature = ?, status = 'successful', updated_at = datetime('now')
+      WHERE id = ?
+    `).run(razorpayPaymentId, razorpaySignature.toLowerCase(), payment.id);
+
+    db.prepare(`
+      INSERT OR IGNORE INTO invoices (invoice_number, payment_id, project_id, client_user_id, amount_inr, status)
+      VALUES (?, ?, ?, ?, ?, 'issued')
+    `).run(invoiceNumber, payment.id, payment.project_id, payment.client_user_id, payment.amount_inr);
+    db.exec('COMMIT;');
+  } catch (err) {
+    try {
+      db.exec('ROLLBACK;');
+    } catch {
+      // Ignore rollback error
+    }
+    res.status(500).json({ error: err instanceof Error ? err.message : 'Unable to finalize payment.' });
+    return;
+  }
 
   notifyAdmins('payment_received', `Payment Verified: ${invoiceNumber}`, `INR ${payment.amount_inr} received.`, '/admin');
   logAudit(req.authUser!.id, 'payment_verified', 'payment', payment.id, { razorpayPaymentId, invoiceNumber }, req.ip);
@@ -1224,34 +1604,75 @@ workspaceRouter.post('/payments/razorpay/webhook', (req, res) => {
     return;
   }
 
-  const event = req.body as { event?: string; payload?: { payment?: { entity?: { id?: string; order_id?: string } } } };
+  const event = req.body as {
+    event?: string;
+    payload?: {
+      payment?: {
+        entity?: { id?: string; order_id?: string; status?: string; amount?: number; currency?: string };
+      };
+    };
+  };
   const entity = event.payload?.payment?.entity;
+  const headerEventId = String(req.headers['x-razorpay-event-id'] || '').trim();
+  const eventId =
+    headerEventId ||
+    crypto.createHash('sha256').update(rawBody).digest('hex');
 
-  if (event.event === 'payment.captured' && entity?.order_id && entity?.id) {
-    const payment = db.prepare(`SELECT * FROM payments WHERE razorpay_order_id = ?`).get(entity.order_id) as
-      | { id: number; project_id: number | null; client_user_id: number; amount_inr: number; status: string }
-      | undefined;
-    if (payment && payment.status !== 'successful') {
-      db.prepare(`UPDATE payments SET razorpay_payment_id = ?, status = 'successful', updated_at = datetime('now') WHERE id = ?`).run(
-        entity.id,
-        payment.id
-      );
-      const invoiceNumber = `INV-${new Date().getFullYear()}-${crypto.randomBytes(2).toString('hex').toUpperCase()}`;
-      db.prepare(`
-        INSERT OR IGNORE INTO invoices (invoice_number, payment_id, project_id, client_user_id, amount_inr, status)
-        VALUES (?, ?, ?, ?, ?, 'issued')
-      `).run(invoiceNumber, payment.id, payment.project_id, payment.client_user_id, payment.amount_inr);
-      logAudit(null, 'payment_webhook_captured', 'payment', payment.id, { razorpayPaymentId: entity.id, invoiceNumber }, req.ip);
-    }
-  } else if (event.event === 'payment.failed' && entity?.order_id) {
-    const payment = db.prepare(`SELECT id, status FROM payments WHERE razorpay_order_id = ?`).get(entity.order_id) as
-      | { id: number; status: string }
-      | undefined;
-    if (payment && payment.status !== 'successful') {
-      db.prepare(`UPDATE payments SET status = 'failed', updated_at = datetime('now') WHERE id = ?`).run(payment.id);
-      logAudit(null, 'payment_webhook_failed', 'payment', payment.id, { orderId: entity.order_id }, req.ip);
-    }
+  const alreadyProcessed = db.prepare('SELECT event_id FROM razorpay_webhook_events WHERE event_id = ?').get(eventId);
+  if (alreadyProcessed) {
+    res.json({ received: true, duplicate: true });
+    return;
   }
+
+  db.exec('BEGIN IMMEDIATE;');
+  try {
+    db.prepare(`
+      INSERT INTO razorpay_webhook_events (event_id, event_type, razorpay_payment_id, razorpay_order_id)
+      VALUES (?, ?, ?, ?)
+    `).run(eventId, String(event.event || 'unknown'), String(entity?.id || ''), String(entity?.order_id || ''));
+
+    if (event.event === 'payment.captured' && entity?.order_id && entity?.id) {
+      const payment = db.prepare(`SELECT * FROM payments WHERE razorpay_order_id = ?`).get(entity.order_id) as
+        | { id: number; project_id: number | null; client_user_id: number; amount_inr: number; currency: string; status: string }
+        | undefined;
+      if (
+        payment &&
+        payment.status !== 'successful' &&
+        entity.status === 'captured' &&
+        entity.currency === (payment.currency || 'INR') &&
+        entity.amount === Math.round(payment.amount_inr * 100)
+      ) {
+        db.prepare(`UPDATE payments SET razorpay_payment_id = ?, status = 'successful', updated_at = datetime('now') WHERE id = ?`).run(
+          entity.id,
+          payment.id
+        );
+        const invoiceNumber = `INV-${new Date().getFullYear()}-${crypto.randomBytes(2).toString('hex').toUpperCase()}`;
+        db.prepare(`
+          INSERT OR IGNORE INTO invoices (invoice_number, payment_id, project_id, client_user_id, amount_inr, status)
+          VALUES (?, ?, ?, ?, ?, 'issued')
+        `).run(invoiceNumber, payment.id, payment.project_id, payment.client_user_id, payment.amount_inr);
+        logAudit(null, 'payment_webhook_captured', 'payment', payment.id, { razorpayPaymentId: entity.id, invoiceNumber }, req.ip);
+      }
+    } else if (event.event === 'payment.failed' && entity?.order_id) {
+      const payment = db.prepare(`SELECT id, status FROM payments WHERE razorpay_order_id = ?`).get(entity.order_id) as
+        | { id: number; status: string }
+        | undefined;
+      if (payment && payment.status !== 'successful') {
+        db.prepare(`UPDATE payments SET status = 'failed', updated_at = datetime('now') WHERE id = ?`).run(payment.id);
+        logAudit(null, 'payment_webhook_failed', 'payment', payment.id, { orderId: entity.order_id }, req.ip);
+      }
+    }
+    db.exec('COMMIT;');
+  } catch (err) {
+    try {
+      db.exec('ROLLBACK;');
+    } catch {
+      // Ignore rollback error
+    }
+    res.status(500).json({ error: err instanceof Error ? err.message : 'Webhook processing failed.' });
+    return;
+  }
+
   res.json({ received: true });
 });
 
@@ -1299,47 +1720,73 @@ workspaceRouter.get('/workspace/conversations/:id/messages', requireAuth, (req: 
 workspaceRouter.post(
   '/workspace/conversations/:id/messages',
   requireAuth,
+  ensureConversationAccessBeforeUpload,
   upload.single('attachment'),
   (req: AuthenticatedRequest, res) => {
     const conversationId = Number(req.params.id);
     const user = req.authUser!;
-    if (!canUserAccessConversation(user, conversationId)) {
-      res.status(403).json({ error: 'Access denied to this conversation.' });
-      return;
-    }
 
     const body = sanitizeText(req.body?.body, 4000);
     if (!body && !req.file) {
+      cleanupUploadedFiles(req.file);
       res.status(400).json({ error: 'Message text or attachment is required.' });
       return;
     }
 
-    const convo = db.prepare('SELECT project_id, channel_type, title FROM conversations WHERE id = ?').get(conversationId) as {
-      project_id: number;
-      channel_type: string;
-      title: string;
-    };
+    if (req.file && !validateUploadedFileSignature(req.file.path, req.file.mimetype)) {
+      cleanupUploadedFiles(req.file);
+      res.status(400).json({ error: 'Uploaded attachment failed content signature validation.' });
+      return;
+    }
+
+    const convo = db.prepare('SELECT project_id, channel_type, title FROM conversations WHERE id = ?').get(conversationId) as
+      | {
+          project_id: number;
+          channel_type: string;
+          title: string;
+        }
+      | undefined;
+
+    if (!convo) {
+      cleanupUploadedFiles(req.file);
+      res.status(404).json({ error: 'Conversation not found.' });
+      return;
+    }
 
     let attachmentId: number | null = null;
     let attachmentName: string | null = null;
     let attachmentMime: string | null = null;
+    let msgId = 0;
 
-    if (req.file) {
-      const att = db.prepare(`
-        INSERT INTO attachments (owner_user_id, project_id, original_name, stored_name, mime_type, size_bytes, visibility)
-        VALUES (?, ?, ?, ?, ?, ?, 'private')
-      `).run(user.id, convo.project_id, req.file.originalname, req.file.filename, req.file.mimetype, req.file.size);
-      attachmentId = Number(att.lastInsertRowid);
-      attachmentName = req.file.originalname;
-      attachmentMime = req.file.mimetype;
+    db.exec('BEGIN IMMEDIATE;');
+    try {
+      if (req.file) {
+        const att = db.prepare(`
+          INSERT INTO attachments (owner_user_id, project_id, original_name, stored_name, mime_type, size_bytes, visibility)
+          VALUES (?, ?, ?, ?, ?, ?, 'private')
+        `).run(user.id, convo.project_id, req.file.originalname, req.file.filename, req.file.mimetype, req.file.size);
+        attachmentId = Number(att.lastInsertRowid);
+        attachmentName = req.file.originalname;
+        attachmentMime = req.file.mimetype;
+      }
+
+      const r = db.prepare(`
+        INSERT INTO messages (conversation_id, sender_user_id, body, attachment_id)
+        VALUES (?, ?, ?, ?)
+      `).run(conversationId, user.id, body || '[Attachment]', attachmentId);
+      msgId = Number(r.lastInsertRowid);
+      db.exec('COMMIT;');
+    } catch (err) {
+      try {
+        db.exec('ROLLBACK;');
+      } catch {
+        // Ignore rollback error
+      }
+      cleanupUploadedFiles(req.file);
+      res.status(500).json({ error: err instanceof Error ? err.message : 'Unable to send message.' });
+      return;
     }
 
-    const r = db.prepare(`
-      INSERT INTO messages (conversation_id, sender_user_id, body, attachment_id)
-      VALUES (?, ?, ?, ?)
-    `).run(conversationId, user.id, body || '[Attachment]', attachmentId);
-
-    const msgId = Number(r.lastInsertRowid);
     const createdMsg = {
       id: msgId,
       conversation_id: conversationId,
@@ -1430,14 +1877,16 @@ workspaceRouter.get('/attachments/:id', requireAuth, (req: AuthenticatedRequest,
     return;
   }
 
-  const fullPath = path.join(UPLOADS_DIR, path.basename(att.stored_name));
-  if (!fs.existsSync(fullPath)) {
+  const uploadsRoot = path.resolve(UPLOADS_DIR);
+  const fullPath = path.resolve(uploadsRoot, path.basename(att.stored_name));
+  if (!fullPath.startsWith(`${uploadsRoot}${path.sep}`) || !fs.existsSync(fullPath)) {
     res.status(404).json({ error: 'File missing on storage.' });
     return;
   }
 
+  res.setHeader('X-Content-Type-Options', 'nosniff');
   res.setHeader('Content-Type', att.mime_type);
-  res.setHeader('Content-Disposition', `attachment; filename="${att.original_name.replace(/"/g, '')}"`);
+  res.setHeader('Content-Disposition', `attachment; filename="${att.original_name.replace(/["\r\n]/g, '')}"`);
   res.sendFile(fullPath);
 });
 
@@ -1484,15 +1933,36 @@ workspaceRouter.post('/workspace/reviews', requireAuth, (req: AuthenticatedReque
 });
 
 // ---------- ADMIN MANAGEMENT ROUTES ----------
-workspaceRouter.get('/admin/users', requireRole('admin', 'project_manager'), (_req, res) => {
+workspaceRouter.get('/admin/users', requireRole('admin', 'project_manager'), (req: AuthenticatedRequest, res) => {
+  const user = req.authUser!;
+  if (user.roles.includes('admin')) {
+    const users = db.prepare(`
+      SELECT u.id, u.firebase_uid, u.name, u.email, u.phone, u.company, u.is_active, u.created_at,
+             GROUP_CONCAT(ur.role) as roles_csv
+      FROM users u
+      LEFT JOIN user_roles ur ON ur.user_id = u.id
+      GROUP BY u.id
+      ORDER BY u.id DESC
+    `).all();
+    res.json({ users });
+    return;
+  }
+
+  // Project managers see team staff + clients belonging to projects they manage
   const users = db.prepare(`
-    SELECT u.id, u.firebase_uid, u.name, u.email, u.phone, u.company, u.is_active, u.created_at,
+    SELECT DISTINCT u.id, u.firebase_uid, u.name, u.email, u.phone, u.company, u.is_active, u.created_at,
            GROUP_CONCAT(ur.role) as roles_csv
     FROM users u
     LEFT JOIN user_roles ur ON ur.user_id = u.id
+    WHERE ur.role IN ('project_manager', 'developer', 'designer')
+       OR u.id IN (
+         SELECT p.client_user_id FROM projects p
+         WHERE p.manager_user_id = ?
+            OR EXISTS (SELECT 1 FROM project_members pm WHERE pm.project_id = p.id AND pm.user_id = ?)
+       )
     GROUP BY u.id
     ORDER BY u.id DESC
-  `).all();
+  `).all(user.id, user.id);
   res.json({ users });
 });
 
@@ -1532,6 +2002,8 @@ workspaceRouter.patch('/admin/users/:id/role', requireRole('admin'), async (req:
   db.prepare('INSERT INTO user_roles (user_id, role) VALUES (?, ?)').run(targetId, role);
   db.prepare(`UPDATE users SET is_active = ?, updated_at = datetime('now') WHERE id = ?`).run(isActive ? 1 : 0, targetId);
 
+  disconnectUserSockets(targetId);
+
   let firebaseSynced = false;
   if (targetRow.firebase_uid) {
     firebaseSynced = await updateFirebaseUserNodeAsAdmin(
@@ -1543,6 +2015,23 @@ workspaceRouter.patch('/admin/users/:id/role', requireRole('admin'), async (req:
 
   logAudit(req.authUser!.id, 'user_role_updated', 'user', targetId, { role, isActive, firebaseSynced }, req.ip);
   res.json({ ok: true, firebaseSynced });
+});
+
+workspaceRouter.get('/admin/deletion-requests', requireRole('admin'), (_req, res) => {
+  const requests = db.prepare('SELECT * FROM data_deletion_requests ORDER BY id DESC').all();
+  res.json({ requests });
+});
+
+workspaceRouter.patch('/admin/deletion-requests/:id', requireRole('admin'), (req: AuthenticatedRequest, res) => {
+  const id = Number(req.params.id);
+  const status = sanitizeText(req.body?.status, 30);
+  if (!['Pending', 'In Progress', 'Completed', 'Rejected'].includes(status)) {
+    res.status(400).json({ error: 'Invalid deletion request status.' });
+    return;
+  }
+  db.prepare(`UPDATE data_deletion_requests SET status = ?, updated_at = datetime('now') WHERE id = ?`).run(status, id);
+  logAudit(req.authUser!.id, 'deletion_request_updated', 'data_deletion_request', id, { status }, req.ip);
+  res.json({ ok: true });
 });
 
 // Admin Team Members
