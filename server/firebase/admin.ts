@@ -48,6 +48,16 @@ let adminAuthInstance: Auth | null = null;
 
 function unwrapSurroundingQuotes(value: string): string {
   const trimmed = value.replace(/^\uFEFF/, '').trim();
+  if (trimmed.startsWith('"') && trimmed.endsWith('"')) {
+    try {
+      const parsed = JSON.parse(trimmed);
+      if (typeof parsed === 'string') {
+        return parsed.replace(/^\uFEFF/, '').trim();
+      }
+    } catch {
+      // Not a JSON-encoded string; fall through to raw quote unwrapping
+    }
+  }
   if (
     (trimmed.startsWith("'") && trimmed.endsWith("'")) ||
     (trimmed.startsWith('"') && trimmed.endsWith('"'))
@@ -110,20 +120,7 @@ function parseJsonObjectLenient(jsonText: string): unknown {
 }
 
 export function parseServiceAccountInput(raw: string): ParsedServiceAccount {
-  const cleaned = unwrapSurroundingQuotes(raw);
-  let jsonText = cleaned;
-
-  // Handle double-encoded JSON strings (e.g. "\"{\\\"type\\\":...}\"")
-  if (jsonText.startsWith('"') && jsonText.endsWith('"')) {
-    try {
-      const unwrapped = JSON.parse(jsonText);
-      if (typeof unwrapped === 'string' && unwrapped.trim().startsWith('{')) {
-        jsonText = unwrapped.trim();
-      }
-    } catch {
-      // Continue to standard parsing/path checks
-    }
-  }
+  let jsonText = unwrapSurroundingQuotes(raw);
 
   if (!jsonText.startsWith('{')) {
     // Try reading from filesystem path if it looks like a path or file exists
