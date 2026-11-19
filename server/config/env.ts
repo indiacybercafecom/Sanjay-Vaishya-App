@@ -1,13 +1,19 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import crypto from 'node:crypto';
+import { fileURLToPath } from 'node:url';
 import dotenv from 'dotenv';
 
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+export const APP_ROOT = path.resolve(__dirname, '../..');
+
+// Load .env from the application root first (Hostinger/LiteSpeed may start with a different cwd)
+dotenv.config({ path: path.join(APP_ROOT, '.env') });
 dotenv.config();
 
-const ROOT_DIR = process.cwd();
 const configuredStorage = process.env.STORAGE_DIR?.trim();
-export const STORAGE_DIR = configuredStorage ? path.resolve(ROOT_DIR, configuredStorage) : path.join(ROOT_DIR, 'storage');
+export const STORAGE_DIR = configuredStorage ? path.resolve(APP_ROOT, configuredStorage) : path.join(APP_ROOT, 'storage');
 export const UPLOADS_DIR = path.join(STORAGE_DIR, 'uploads');
 export const DB_PATH = path.join(STORAGE_DIR, 'platform.db');
 
@@ -16,6 +22,19 @@ if (!fs.existsSync(STORAGE_DIR)) {
 }
 if (!fs.existsSync(UPLOADS_DIR)) {
   fs.mkdirSync(UPLOADS_DIR, { recursive: true });
+}
+
+function resolvePort(): number | string {
+  const raw = (process.env.PORT || '').trim();
+  if (!raw) return 3000;
+  if (/^\d+$/.test(raw)) {
+    const parsed = Number(raw);
+    if (Number.isInteger(parsed) && parsed > 0 && parsed <= 65535) {
+      return parsed;
+    }
+  }
+  // Preserve non-numeric socket / named pipe paths injected by some Node.js hosting runners
+  return raw;
 }
 
 function resolveSessionSecret(): string {
@@ -34,7 +53,7 @@ function resolveSessionSecret(): string {
 }
 
 export const ENV = {
-  PORT: Number(process.env.PORT || 3000),
+  PORT: resolvePort(),
   IS_DEV: process.env.NODE_ENV === 'development',
   APP_URL: (process.env.APP_URL || 'http://localhost:3000').trim(),
   SESSION_SECRET: resolveSessionSecret(),

@@ -3,14 +3,26 @@ import { DB_PATH } from '../config/env.ts';
 
 export const db = new DatabaseSync(DB_PATH);
 
-db.exec('PRAGMA journal_mode = WAL;');
+let activeJournalMode: 'WAL' | 'DELETE' = 'WAL';
+try {
+  db.exec('PRAGMA journal_mode = WAL;');
+} catch (err) {
+  activeJournalMode = 'DELETE';
+  console.warn(
+    '[SQLITE] WAL journal mode unavailable on this filesystem; falling back to DELETE mode:',
+    err instanceof Error ? err.message : err
+  );
+  db.exec('PRAGMA journal_mode = DELETE;');
+}
 db.exec('PRAGMA synchronous = NORMAL;');
 db.exec('PRAGMA busy_timeout = 5000;');
 db.exec('PRAGMA foreign_keys = ON;');
 
 export function closeDatabase(): void {
   try {
-    db.exec('PRAGMA wal_checkpoint(TRUNCATE);');
+    if (activeJournalMode === 'WAL') {
+      db.exec('PRAGMA wal_checkpoint(TRUNCATE);');
+    }
     db.close();
   } catch (err) {
     console.error('Database close error:', err);

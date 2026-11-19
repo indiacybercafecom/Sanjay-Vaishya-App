@@ -130,9 +130,26 @@ async function setupFrontend(): Promise<void> {
     });
   }
 
-  server.listen(ENV.PORT, '0.0.0.0', () => {
-    console.log(`Sanjay Vaishya Platform listening on port ${ENV.PORT} (${ENV.IS_DEV ? 'development' : 'production'})`);
+  const onListen = () => {
+    const distBuilt = fs.existsSync(path.join(__dirname, 'dist', 'index.html'));
+    const adminDiag = getFirebaseAdminDiagnostics();
+    console.log(
+      `Sanjay Vaishya Platform listening on ${ENV.PORT} (${ENV.IS_DEV ? 'development' : 'production'}) | dist=${
+        distBuilt ? 'ready' : 'missing'
+      } | firebaseAdmin=${adminDiag.mode}`
+    );
+  };
+
+  server.on('error', (err: NodeJS.ErrnoException) => {
+    console.error(`[FATAL] HTTP server failed to bind ${ENV.PORT}:`, err.code || err.message, err);
+    process.exit(1);
   });
+
+  if (typeof ENV.PORT === 'number') {
+    server.listen(ENV.PORT, '0.0.0.0', onListen);
+  } else {
+    server.listen(ENV.PORT, onListen);
+  }
 }
 
 let shuttingDown = false;
@@ -156,4 +173,7 @@ function shutdown(signal: string): void {
 process.on('SIGTERM', () => shutdown('SIGTERM'));
 process.on('SIGINT', () => shutdown('SIGINT'));
 
-setupFrontend();
+setupFrontend().catch((err) => {
+  console.error('[FATAL] Failed to initialize application server:', err);
+  process.exit(1);
+});

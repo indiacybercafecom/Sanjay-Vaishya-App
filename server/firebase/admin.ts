@@ -3,7 +3,7 @@ import path from 'node:path';
 import { initializeApp, getApps, getApp, cert, type App, type ServiceAccount } from 'firebase-admin/app';
 import { getAuth, type Auth, type DecodedIdToken } from 'firebase-admin/auth';
 import { getDatabase } from 'firebase-admin/database';
-import { ENV } from '../config/env.ts';
+import { APP_ROOT, ENV } from '../config/env.ts';
 
 export type UserRole = 'admin' | 'project_manager' | 'developer' | 'designer' | 'client';
 export type AccountStatus = 'active' | 'disabled';
@@ -47,35 +47,92 @@ let adminAppInstance: App | null = null;
 let adminAuthInstance: Auth | null = null;
 
 function unwrapSurroundingQuotes(value: string): string {
-  const trimmed = value.trim();
+  const trimmed = value.replace(/^\uFEFF/, '').trim();
   if (
     (trimmed.startsWith("'") && trimmed.endsWith("'")) ||
     (trimmed.startsWith('"') && trimmed.endsWith('"'))
   ) {
-    try {
-      const inner = trimmed.slice(1, -1);
-      if (inner.trim().startsWith('{')) {
-        return inner.trim();
-      }
-    } catch {
-      // Keep original
+    const inner = trimmed.slice(1, -1).trim();
+    if (inner.startsWith('{') && inner.endsWith('}')) {
+      return inner;
     }
   }
   return trimmed;
 }
 
-function parseServiceAccountInput(raw: string): ParsedServiceAccount {
+function escapeLiteralNewlinesInJsonStrings(input: string): string {
+  let out = '';
+  let inString = false;
+  let escaped = false;
+  for (let i = 0; i < input.length; i += 1) {
+    const ch = input[i];
+    if (escaped) {
+      out += ch;
+      escaped = false;
+      continue;
+    }
+    if (ch === '\\') {
+      out += ch;
+      if (inString) escaped = true;
+      continue;
+    }
+    if (ch === '"') {
+      inString = !inString;
+      out += ch;
+      continue;
+    }
+    if (inString && ch === '\n') {
+      out += '\\n';
+      continue;
+    }
+    if (inString && ch === '\r') {
+      out += '\\r';
+      continue;
+    }
+    out += ch;
+  }
+  return out;
+}
+
+function parseJsonObjectLenient(jsonText: string): unknown {
+  try {
+    return JSON.parse(jsonText);
+  } catch (primaryErr) {
+    if (jsonText.includes('\n') || jsonText.includes('\r')) {
+      try {
+        return JSON.parse(escapeLiteralNewlinesInJsonStrings(jsonText));
+      } catch {
+        // Fall through to report original error
+      }
+    }
+    throw primaryErr;
+  }
+}
+
+export function parseServiceAccountInput(raw: string): ParsedServiceAccount {
   const cleaned = unwrapSurroundingQuotes(raw);
   let jsonText = cleaned;
 
+  // Handle double-encoded JSON strings (e.g. "\"{\\\"type\\\":...}\"")
+  if (jsonText.startsWith('"') && jsonText.endsWith('"')) {
+    try {
+      const unwrapped = JSON.parse(jsonText);
+      if (typeof unwrapped === 'string' && unwrapped.trim().startsWith('{')) {
+        jsonText = unwrapped.trim();
+      }
+    } catch {
+      // Continue to standard parsing/path checks
+    }
+  }
+
   if (!jsonText.startsWith('{')) {
     // Try reading from filesystem path if it looks like a path or file exists
-    const resolvedPath = path.isAbsolute(jsonText) ? jsonText : path.resolve(process.cwd(), jsonText);
+    const resolvedPath = path.isAbsolute(jsonText) ? jsonText : path.resolve(APP_ROOT, jsonText);
     if (fs.existsSync(resolvedPath)) {
-      jsonText = fs.readFileSync(resolvedPath, 'utf8').trim();
+      jsonText = fs.readFileSync(resolvedPath, 'utf8').replace(/^\uFEFF/, '').trim();
     } else if (/^[A-Za-z0-9+/=_-]+$/.test(jsonText) && jsonText.length > 64) {
       // Support Base64-encoded service account JSON for Hostinger env panels
-      const decoded = Buffer.from(jsonText, 'base64').toString('utf8').trim();
+      const decoded = Buffer.from(jsonText, 'base64').toString('utf8').replace(/^\uFEFF/, '').trim();
       if (!decoded.startsWith('{')) {
         throw new Error(
           `FIREBASE_SERVICE_ACCOUNT_JSON is neither valid JSON, Base64 JSON, nor an existing file path (${resolvedPath}).`
@@ -87,16 +144,20 @@ function parseServiceAccountInput(raw: string): ParsedServiceAccount {
     }
   }
 
-  let parsed: ParsedServiceAccount;
+  let parsedRaw: unknown;
   try {
-    parsed = JSON.parse(jsonText) as ParsedServiceAccount;
+    parsedRaw = parseJsonObjectLenient(jsonText);
+    if (typeof parsedRaw === 'string') {
+      parsedRaw = parseJsonObjectLenient(parsedRaw);
+    }
   } catch (err) {
     throw new Error(
       `FIREBASE_SERVICE_ACCOUNT_JSON could not be parsed as JSON: ${err instanceof Error ? err.message : 'Syntax error'}`
     );
   }
 
-  if (!parsed || typeof parsed !== 'object') {
+  const parsed = parsedRaw as ParsedServiceAccount;
+  if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) {
     throw new Error('FIREBASE_SERVICE_ACCOUNT_JSON must decode to a JSON object.');
   }
 

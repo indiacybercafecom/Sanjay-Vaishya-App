@@ -7,6 +7,7 @@
   "scripts": {
     "dev": "NODE_ENV=development tsx server.ts",
     "build": "vite build",
+    "postinstall": "node -e \"import('node:fs').then(async ({default:fs})=>{if(process.env.SKIP_POSTINSTALL_BUILD==='1'||!fs.existsSync('node_modules/.bin/vite'))return;const {execSync}=await import('node:child_process');execSync('npm run build',{stdio:'inherit'});}).catch((e)=>{console.error(e);process.exit(1);});\"",
     "start": "tsx server.ts",
     "preview": "vite preview",
     "clean": "rm -rf dist",
